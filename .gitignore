@@ -1,0 +1,12 @@
+# Ignore vs files
+.vs/
+
+# Ignore compiled files
+x64/Release/
+x64/Debug/
+Release/
+Debug/
+
+# Ignore binary files
+*.exe
+*.dll
