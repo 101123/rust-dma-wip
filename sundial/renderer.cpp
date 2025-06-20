@@ -211,7 +211,7 @@ void renderer::draw_line( float x1, float y1, float x2, float y2, float thicknes
 }
 
 void renderer::draw_string_a( float x, float y, float size, uint16_t flags, uint32_t color, const char* text ) {
-    ImGui::GetForegroundDrawList()->AddText( ImVec2( x, y ), color, text );
+    ImGui::GetForegroundDrawList()->AddText( ImGui::GetFont(), size, ImVec2( x, y ), color, text );
 }
 
 void renderer::draw_string_w( float x, float y, float size, uint16_t flags, uint32_t color, const wchar_t* text ) {
@@ -231,7 +231,7 @@ void renderer::draw_image( float x, float y, float width, float height, ID3D11Sh
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
     draw_list->AddCallback( draw_image_callback, m_image_sampler );
-    draw_list->AddImage( ( ImTextureRef )srv, ImVec2( x, y ), ImVec2( x + width, y + height ) );
+    draw_list->AddImage( ( ImTextureID )srv, ImVec2( x, y ), ImVec2( x + width, y + height ) );
     draw_list->AddCallback( draw_image_callback, nullptr );
 }
 
