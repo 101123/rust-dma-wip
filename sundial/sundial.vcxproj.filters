@@ -107,6 +107,9 @@
     <ClInclude Include="dma.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="global.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\memprocfs\leechcore.lib" />

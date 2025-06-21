@@ -166,6 +166,7 @@
   <ItemGroup>
     <ClInclude Include="assets.h" />
     <ClInclude Include="dma.h" />
+    <ClInclude Include="global.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
     <ClInclude Include="include\imgui\imgui.h" />
     <ClInclude Include="include\imgui\imgui_freetype.h" />
