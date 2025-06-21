@@ -4,6 +4,9 @@
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_dx11.h>
 #include <imgui/imgui_impl_win32.h>
+#include <imgui/imgui_freetype.h>
+
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 #include <dwmapi.h>
@@ -133,12 +136,16 @@ bool renderer::initialize() {
     UpdateWindow( m_hwnd );
 
     ImGui::CreateContext();
-
-    // stop .ini files from being created
     ImGuiIO& io = ImGui::GetIO();
 
+    // stop .ini files from being created
     io.IniFilename = nullptr;
-    io.Fonts->AddFontFromFileTTF( "C:\\Users\\User\\AppData\\Local\\Microsoft\\Windows\\Fonts\\unifont-16.0.03.ttf", 16.f );
+
+    // load fonts
+    ImFontConfig cfg = {};
+    cfg.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_LightHinting;
+
+    m_fonts[ fonts::verdana ] = io.Fonts->AddFontFromFileTTF( "C:\\Windows\\Fonts\\verdana.ttf", 0.f, &cfg );
 
     if ( !ImGui_ImplWin32_Init( m_hwnd ) ) {
         // TODO: cleanup
@@ -191,7 +198,7 @@ void renderer::end_frame() {
 }
 
 void renderer::draw_rect( float x, float y, float width, float height, float thickness, uint32_t color, float rounding ) {
-    ImGui::GetForegroundDrawList()->AddRect( ImVec2( x, y ), ImVec2( x + width, y + height ), color, rounding );
+    ImGui::GetForegroundDrawList()->AddRect( ImVec2( x, y ), ImVec2( x + width, y + height ), color, rounding, ImDrawFlags_None, thickness );
 }
 
 void renderer::draw_filled_rect( float x, float y, float width, float height, uint32_t color, float rounding ) {
@@ -210,15 +217,39 @@ void renderer::draw_line( float x1, float y1, float x2, float y2, float thicknes
     ImGui::GetForegroundDrawList()->AddLine( ImVec2( x1, y1 ), ImVec2( x2, y2 ), color, thickness );
 }
 
-void renderer::draw_string_a( float x, float y, float size, uint16_t flags, uint32_t color, const char* text ) {
-    ImGui::GetForegroundDrawList()->AddText( ImGui::GetFont(), size, ImVec2( x, y ), color, text );
+void renderer::draw_string_a( float x, float y, uint32_t font_idx, float size, uint32_t flags, uint32_t color, const char* text ) {
+    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+    ImFont* font = ( ImFont* )m_fonts[ font_idx ];
+
+    if ( flags & text_flags::centered ) {
+        ImVec2 bounds = font->CalcTextSizeA( size, FLT_MAX, 0.f, text );
+        x -= bounds.x * 0.5f;
+    }
+
+    uint32_t outline_color = IM_COL32( 0, 0, 0, color >> 24 );
+
+    if ( flags & ( text_flags::drop_shadow | text_flags::outline ) ) {
+        draw_list->AddText( font, size, ImVec2( x + 1.f, y + 1.f ), outline_color, text );
+    }
+
+    if ( flags & text_flags::outline ) {
+        draw_list->AddText( font, size, ImVec2( x - 1.f, y - 1.f ), outline_color, text );
+        draw_list->AddText( font, size, ImVec2( x + 1.f, y - 1.f ), outline_color, text );
+        draw_list->AddText( font, size, ImVec2( x - 1.f, y + 1.f ), outline_color, text );
+        draw_list->AddText( font, size, ImVec2( x + 1.f, y ), outline_color, text );
+        draw_list->AddText( font, size, ImVec2( x - 1.f, y ), outline_color, text );
+        draw_list->AddText( font, size, ImVec2( x, y - 1.f ), outline_color, text );
+        draw_list->AddText( font, size, ImVec2( x, y + 1.f ), outline_color, text );
+    }
+
+    draw_list->AddText( font, size, ImVec2( x, y ), color, text );
 }
 
-void renderer::draw_string_w( float x, float y, float size, uint16_t flags, uint32_t color, const wchar_t* text ) {
+void renderer::draw_string_w( float x, float y, uint32_t font_idx, float size, uint32_t flags, uint32_t color, const wchar_t* text ) {
     char buffer[ 512 ];
     ImTextStrToUtf8( buffer, sizeof( buffer ), ( ImWchar* )text, ( ImWchar* )( text + wcslen( text ) + 1 ) );
 
-    ImGui::GetForegroundDrawList()->AddText( ImVec2( x, y ), color, buffer );
+    draw_string_a( x, y, font_idx, size, flags, color, buffer );
 }
 
 void draw_image_callback( const ImDrawList* parent_list, const ImDrawCmd* cmd ) {
@@ -231,7 +262,7 @@ void renderer::draw_image( float x, float y, float width, float height, ID3D11Sh
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
     draw_list->AddCallback( draw_image_callback, m_image_sampler );
-    draw_list->AddImage( ( ImTextureID )srv, ImVec2( x, y ), ImVec2( x + width, y + height ) );
+    draw_list->AddImage( srv, ImVec2( x, y ), ImVec2( x + width, y + height ) );
     draw_list->AddCallback( draw_image_callback, nullptr );
 }
 

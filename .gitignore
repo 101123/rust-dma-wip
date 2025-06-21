@@ -1,6 +1,9 @@
 # Ignore vs files
 .vs/
 
+# Ignore external libraries
+sundial/freetype/
+
 # Ignore compiled files
 x64/Release/
 x64/Debug/
