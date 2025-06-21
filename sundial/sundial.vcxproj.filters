@@ -42,13 +42,16 @@
     <ClCompile Include="renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="asset_manager.cpp">
+    <ClCompile Include="assets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\imgui\imgui_freetype.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="render.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dma.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -89,7 +92,7 @@
     <ClInclude Include="renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="asset_manager.h">
+    <ClInclude Include="assets.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stream_reader.h">
@@ -101,5 +104,12 @@
     <ClInclude Include="render.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dma.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="lib\memprocfs\leechcore.lib" />
+    <Library Include="lib\memprocfs\vmm.lib" />
   </ItemGroup>
 </Project>

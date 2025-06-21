@@ -13,7 +13,7 @@ enum text_flags {
 	outline = 4
 };
 
-class renderer {
+class renderer_manager {
 public:
 	bool initialize();
 
@@ -46,4 +46,4 @@ private:
 	void* m_fonts[ 8 ];
 };
 
-inline renderer render;
+inline renderer_manager renderer;

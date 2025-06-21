@@ -149,7 +149,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="asset_manager.cpp" />
+    <ClCompile Include="assets.cpp" />
+    <ClCompile Include="dma.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
     <ClCompile Include="include\imgui\imgui_draw.cpp" />
@@ -163,7 +164,8 @@
     <ClCompile Include="renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="asset_manager.h" />
+    <ClInclude Include="assets.h" />
+    <ClInclude Include="dma.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
     <ClInclude Include="include\imgui\imgui.h" />
     <ClInclude Include="include\imgui\imgui_freetype.h" />
@@ -179,6 +181,10 @@
     <ClInclude Include="render.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="stream_reader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="lib\memprocfs\leechcore.lib" />
+    <Library Include="lib\memprocfs\vmm.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

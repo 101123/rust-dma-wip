@@ -1,4 +1,4 @@
-#include "asset_manager.h"
+#include "assets.h"
 #include "stream_reader.h"
 #include "renderer.h"
 
@@ -37,7 +37,7 @@ bool asset_manager::load( const char* file_path ) {
 	    size_t image_size = stream.read<size_t>();
 	    void* image = stream.read( image_size );
 	
-	    item.m_srv = render.load_texture_from_memory( image, image_size );
+	    item.m_srv = renderer.load_texture_from_memory( image, image_size );
 	}
 	
 	fstream.close();

@@ -28,7 +28,7 @@ void clean_up( T ptr ) {
     }
 }
 
-bool renderer::create_render_target() {
+bool renderer_manager::create_render_target() {
     ID3D11Texture2D* back_buffer = nullptr;
     if ( m_swap_chain->GetBuffer( 0, IID_PPV_ARGS( &back_buffer ) ) != S_OK )
         return false;
@@ -38,7 +38,7 @@ bool renderer::create_render_target() {
     return result;
 }
 
-bool renderer::create_d3d_device() {
+bool renderer_manager::create_d3d_device() {
     DXGI_SWAP_CHAIN_DESC swap_chain_descriptor {
         .BufferDesc = {
             .Width = 0,
@@ -85,7 +85,7 @@ bool renderer::create_d3d_device() {
     return create_render_target();
 }
 
-bool renderer::initialize() {
+bool renderer_manager::initialize() {
     WNDCLASS wnd_class {
         .style = CS_VREDRAW | CS_HREDRAW,
         .lpfnWndProc = wnd_proc,
@@ -178,13 +178,13 @@ bool renderer::initialize() {
     return true;
 }
 
-void renderer::begin_frame() {
+void renderer_manager::begin_frame() {
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 }
 
-void renderer::end_frame() {
+void renderer_manager::end_frame() {
     const float transparent[ 4 ] = { 0.f, 0.f, 0.f, 0.f };
 
     ImGui::Render();
@@ -197,27 +197,27 @@ void renderer::end_frame() {
     m_swap_chain->Present( 1, 0 );
 }
 
-void renderer::draw_rect( float x, float y, float width, float height, float thickness, uint32_t color, float rounding ) {
+void renderer_manager::draw_rect( float x, float y, float width, float height, float thickness, uint32_t color, float rounding ) {
     ImGui::GetForegroundDrawList()->AddRect( ImVec2( x, y ), ImVec2( x + width, y + height ), color, rounding, ImDrawFlags_None, thickness );
 }
 
-void renderer::draw_filled_rect( float x, float y, float width, float height, uint32_t color, float rounding ) {
+void renderer_manager::draw_filled_rect( float x, float y, float width, float height, uint32_t color, float rounding ) {
     ImGui::GetForegroundDrawList()->AddRectFilled( ImVec2( x, y ), ImVec2( x + width, y + height ), color, rounding );
 }
 
-void renderer::draw_circle( float x, float y, float radius, float thickness, uint32_t color ) {
+void renderer_manager::draw_circle( float x, float y, float radius, float thickness, uint32_t color ) {
     ImGui::GetForegroundDrawList()->AddCircle( ImVec2( x, y ), radius, color, 0, thickness );
 }
 
-void renderer::draw_filled_circle( float x, float y, float radius, uint32_t color ) {
+void renderer_manager::draw_filled_circle( float x, float y, float radius, uint32_t color ) {
     ImGui::GetForegroundDrawList()->AddCircleFilled( ImVec2( x, y ), radius, color );
 }
 
-void renderer::draw_line( float x1, float y1, float x2, float y2, float thickness, uint32_t color ) {
+void renderer_manager::draw_line( float x1, float y1, float x2, float y2, float thickness, uint32_t color ) {
     ImGui::GetForegroundDrawList()->AddLine( ImVec2( x1, y1 ), ImVec2( x2, y2 ), color, thickness );
 }
 
-void renderer::draw_string_a( float x, float y, uint32_t font_idx, float size, uint32_t flags, uint32_t color, const char* text ) {
+void renderer_manager::draw_string_a( float x, float y, uint32_t font_idx, float size, uint32_t flags, uint32_t color, const char* text ) {
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
     ImFont* font = ( ImFont* )m_fonts[ font_idx ];
 
@@ -245,7 +245,7 @@ void renderer::draw_string_a( float x, float y, uint32_t font_idx, float size, u
     draw_list->AddText( font, size, ImVec2( x, y ), color, text );
 }
 
-void renderer::draw_string_w( float x, float y, uint32_t font_idx, float size, uint32_t flags, uint32_t color, const wchar_t* text ) {
+void renderer_manager::draw_string_w( float x, float y, uint32_t font_idx, float size, uint32_t flags, uint32_t color, const wchar_t* text ) {
     char buffer[ 512 ];
     ImTextStrToUtf8( buffer, sizeof( buffer ), ( ImWchar* )text, ( ImWchar* )( text + wcslen( text ) + 1 ) );
 
@@ -258,7 +258,7 @@ void draw_image_callback( const ImDrawList* parent_list, const ImDrawCmd* cmd ) 
     render_state->DeviceContext->PSSetSamplers( 0, 1, &sampler );
 }
 
-void renderer::draw_image( float x, float y, float width, float height, ID3D11ShaderResourceView* srv ) {
+void renderer_manager::draw_image( float x, float y, float width, float height, ID3D11ShaderResourceView* srv ) {
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
     draw_list->AddCallback( draw_image_callback, m_image_sampler );
@@ -266,7 +266,7 @@ void renderer::draw_image( float x, float y, float width, float height, ID3D11Sh
     draw_list->AddCallback( draw_image_callback, nullptr );
 }
 
-ID3D11ShaderResourceView* renderer::load_texture_from_memory( void* data, size_t size ) {
+ID3D11ShaderResourceView* renderer_manager::load_texture_from_memory( void* data, size_t size ) {
     int image_width = 0, image_height = 0;
     unsigned char* image_data = stbi_load_from_memory( ( unsigned char* )data, ( int )size, &image_width, &image_height, nullptr, 4 );
     if ( !image_data )

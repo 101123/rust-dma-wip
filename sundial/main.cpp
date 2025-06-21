@@ -1,9 +1,17 @@
 ﻿#include "renderer.h"
 #include "render.h"
-#include "asset_manager.h"
+#include "assets.h"
+#include "dma.h"
+
+#include <memprocfs/leechcore.h>
 
 int main() {
-    if ( !render.initialize() ) {
+    if ( !dma.initialize() ) {
+        printf( "failed to initialize dma\n" );
+        return 1;
+    }
+
+    if ( !renderer.initialize() ) {
         printf( "failed to initialize renderer!\n" );
         return 1;
     }
