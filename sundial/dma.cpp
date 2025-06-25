@@ -64,7 +64,7 @@ bool dma_manager::execute_scatter_request( void* scatter_handle ) {
 }
 
 bool dma_manager::initialize() {
-    LPCSTR args[] = { "" ,  "-device", "fpga://algo=0" };
+    LPCSTR args[] = { "" , "-device", "fpga://algo=0" };
     m_vmm_handle = VMMDLL_Initialize( _countof( args ), args );
     return m_vmm_handle != nullptr;
 }
