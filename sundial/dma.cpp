@@ -11,6 +11,10 @@ uint32_t dma_manager::get_process_id( const char* process_name ) {
     uint32_t process_id = 0;
 
     for ( size_t i = 0; i < count; i++ ) {
+        VMMDLL_PROCESS_INFORMATION* entry = &process_information[ i ];
+        if ( !entry->paDTB )
+            continue;
+
         if ( strcmp( process_information[ i ].szNameLong, process_name ) == 0 ) {
             process_id = process_information[ i ].dwPID;
             break;
