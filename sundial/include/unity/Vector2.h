@@ -66,7 +66,7 @@ inline float Dot(const Vector2f& lhs, const Vector2f& rhs)                 { ret
 inline float SqrMagnitude(const Vector2f& inV)                             { return Dot(inV, inV); }
 inline float Magnitude(const Vector2f& inV)                                { return SqrtImpl(Dot(inV, inV)); }
 
-inline float Angle(const Vector2f& lhs, const Vector2f& rhs)               { return ::acos(std::min(1.0f, std::max(-1.0f, Dot(lhs, rhs) / (Magnitude(lhs) * Magnitude(rhs))))); }
+inline float Angle(const Vector2f& lhs, const Vector2f& rhs)               { return ::acos(fminf(1.0f, fmaxf(-1.0f, Dot(lhs, rhs) / (Magnitude(lhs) * Magnitude(rhs))))); }
 
 inline Vector2f operator*(const Vector2f& lhs, const Vector2f& rhs)       { return Vector2f(lhs.x * rhs.x, lhs.y * rhs.y); }
 inline Vector2f operator*(const Vector2f& inV, float s)                   { return Vector2f(inV.x * s, inV.y * s); }
@@ -85,9 +85,9 @@ inline Vector2f NormalizeSafe(const Vector2f& inV, const Vector2f& defaultV = Ve
 inline Vector2f Lerp(const Vector2f& from, const Vector2f& to, float t)    { return to * t + from * (1.0f - t); }
 
 // Returns a vector with the smaller of every component from v0 and v1
-inline Vector2f Min(const Vector2f& lhs, const Vector2f& rhs)              { return Vector2f(std::min(lhs.x, rhs.x), std::min(lhs.y, rhs.y)); }
+inline Vector2f Min(const Vector2f& lhs, const Vector2f& rhs)              { return Vector2f(fminf(lhs.x, rhs.x), fminf(lhs.y, rhs.y)); }
 // Returns a vector with the larger  of every component from v0 and v1
-inline Vector2f Max(const Vector2f& lhs, const Vector2f& rhs)              { return Vector2f(std::max(lhs.x, rhs.x), std::max(lhs.y, rhs.y)); }
+inline Vector2f Max(const Vector2f& lhs, const Vector2f& rhs)              { return Vector2f(fmaxf(lhs.x, rhs.x), fmaxf(lhs.y, rhs.y)); }
 
 bool CompareApproximately(const Vector2f& inV0, const Vector2f& inV1, float inMaxDist = Vector2f::epsilon);
 
