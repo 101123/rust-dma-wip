@@ -22,7 +22,7 @@ public:
 	bool execute_scatter_request( void* scatter_handle );
 
 private:
-	void* m_vmm_handle;
+	void* m_handle;
 	uint32_t m_pid;
 };
 

@@ -1,11 +1,19 @@
 #include "dma.h"
 
+// #define DMA
+
+#ifdef DMA
 #include <memprocfs/vmmdll.h>
+#else
+#include <windows.h>
+#include <tlhelp32.h>
+#endif
 
 uint32_t dma_manager::get_process_id( const char* process_name ) {
+#ifdef DMA
     VMMDLL_PROCESS_INFORMATION* process_information = nullptr;
     DWORD count = 0;
-    if ( !VMMDLL_ProcessGetInformationAll( ( VMM_HANDLE )m_vmm_handle, &process_information, &count ) )
+    if ( !VMMDLL_ProcessGetInformationAll( ( VMM_HANDLE )m_handle, &process_information, &count ) )
         return 0;
 
     uint32_t process_id = 0;
@@ -23,52 +31,142 @@ uint32_t dma_manager::get_process_id( const char* process_name ) {
 
     VMMDLL_MemFree( process_information );
     return process_id;
+#else
+    HANDLE snapshot = CreateToolhelp32Snapshot( TH32CS_SNAPPROCESS, 0 );
+    if ( snapshot == INVALID_HANDLE_VALUE )
+        return 0;
+
+    PROCESSENTRY32 process_entry {
+        .dwSize = sizeof( PROCESSENTRY32 )
+    };
+
+    uint32_t process_id = 0;
+
+    if ( Process32First( snapshot, &process_entry ) ) {
+        do {
+            if ( strcmp( process_entry.szExeFile, process_name ) == 0 ) {
+                process_id = process_entry.th32ProcessID;
+                break;
+            }
+
+        } while ( Process32Next( snapshot, &process_entry ) );
+    }
+
+    CloseHandle( snapshot );
+    return process_id;
+#endif
 }
 
 void dma_manager::set_process_id( uint32_t process_id ) {
+#ifdef DMA
     m_pid = process_id;
+#else
+    m_handle = ( void* )OpenProcess( PROCESS_ALL_ACCESS, FALSE, process_id );
+    m_pid = process_id;
+#endif
 }
 
 uintptr_t dma_manager::get_module_base_address( const char* name ) {
-    return VMMDLL_ProcessGetModuleBaseU( ( VMM_HANDLE )m_vmm_handle, m_pid, name );
+#ifdef DMA
+    return VMMDLL_ProcessGetModuleBaseU( ( VMM_HANDLE )m_handle, m_pid, name );
+#else
+    HANDLE snapshot = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, m_pid );
+    if ( snapshot == INVALID_HANDLE_VALUE )
+        return 0;
+
+    MODULEENTRY32 module_entry {
+        .dwSize = sizeof( MODULEENTRY32 )
+    };
+
+    uintptr_t module_base = 0;
+
+    if ( Module32First( snapshot, &module_entry ) ) {
+        do {
+            if ( strcmp( module_entry.szModule, name ) == 0 ) {
+                module_base = ( uintptr_t )module_entry.modBaseAddr;
+                break;
+            }
+
+        } while ( Module32Next( snapshot, &module_entry ) );
+    }
+
+    CloseHandle( snapshot );
+    return module_base;
+#endif
 }
 
 bool dma_manager::read_memory( uintptr_t address, void* buffer, size_t size ) {
+#ifdef DMA
     DWORD read = 0;
-    BOOL result = VMMDLL_MemReadEx( ( VMM_HANDLE )m_vmm_handle, m_pid, address, ( PBYTE )buffer, size, NULL, VMMDLL_FLAG_NOCACHE );
+    BOOL result = VMMDLL_MemReadEx( ( VMM_HANDLE )m_handle, m_pid, address, ( PBYTE )buffer, size, NULL, VMMDLL_FLAG_NOCACHE );
     return result && read == size;
+#else
+    return ReadProcessMemory( ( HANDLE )m_handle, ( LPCVOID )address, ( LPVOID )buffer, size, nullptr );
+#endif
 }
 
 bool dma_manager::write_memory( uintptr_t address, void* buffer, size_t size ) {
-    return VMMDLL_MemWrite( ( VMM_HANDLE )m_vmm_handle, m_pid, address, ( PBYTE )buffer, size );
+#ifdef DMA
+    return VMMDLL_MemWrite( ( VMM_HANDLE )m_handle, m_pid, address, ( PBYTE )buffer, size );
+#else
+    return WriteProcessMemory( ( HANDLE )m_handle, ( LPVOID )address, ( LPCVOID )buffer, size, nullptr );
+#endif
 }
 
 void* dma_manager::initialize_scatter_request() {
-    return VMMDLL_Scatter_Initialize( ( VMM_HANDLE )m_vmm_handle, m_pid, VMMDLL_FLAG_NOCACHE );
+#ifdef DMA
+    return VMMDLL_Scatter_Initialize( ( VMM_HANDLE )m_handle, m_pid, VMMDLL_FLAG_NOCACHE );
+#else
+
+#endif
 }
 
 void dma_manager::free_scatter_request( void* scatter_handle ) {
+#ifdef DMA
     return VMMDLL_Scatter_CloseHandle( scatter_handle );
+#else
+
+#endif
 }
 
 bool dma_manager::clear_scatter_request( void* scatter_handle ) {
+#ifdef DMA
     return VMMDLL_Scatter_Clear( scatter_handle, m_pid, VMMDLL_FLAG_NOCACHE );
+#else
+    return true;
+#endif
 }
 
 bool dma_manager::add_scatter_read( void* scatter_handle, uintptr_t address, void* buffer, size_t size ) {
+#ifdef DMA
     return VMMDLL_Scatter_PrepareEx( scatter_handle, address, size, ( PBYTE )buffer, NULL );
+#else
+    return true;
+#endif
 }
 
 bool dma_manager::add_scatter_write( void* scatter_handle, uintptr_t address, void* buffer, size_t size ) {
+#ifdef DMA
     return VMMDLL_Scatter_PrepareWriteEx( scatter_handle, address, ( PBYTE )buffer, size );
+#else
+    return true;
+#endif
 }
 
 bool dma_manager::execute_scatter_request( void* scatter_handle ) {
+#ifdef DMA
     return VMMDLL_Scatter_Execute( scatter_handle );
+#else
+    return true;
+#endif
 }
 
 bool dma_manager::initialize() {
+#ifdef DMA
     LPCSTR args[] = { "" , "-device", "fpga://algo=0" };
-    m_vmm_handle = VMMDLL_Initialize( _countof( args ), args );
-    return m_vmm_handle != nullptr;
+    m_handle = VMMDLL_Initialize( _countof( args ), args );
+    return m_handle != nullptr;
+#else
+    return true;
+#endif
 }

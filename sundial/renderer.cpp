@@ -261,9 +261,9 @@ void draw_image_callback( const ImDrawList* parent_list, const ImDrawCmd* cmd ) 
 void renderer_manager::draw_image( float x, float y, float width, float height, ID3D11ShaderResourceView* srv ) {
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-    draw_list->AddCallback( draw_image_callback, m_image_sampler );
+    //draw_list->AddCallback( draw_image_callback, m_image_sampler );
     draw_list->AddImage( srv, ImVec2( x, y ), ImVec2( x + width, y + height ) );
-    draw_list->AddCallback( draw_image_callback, nullptr );
+    //draw_list->AddCallback( draw_image_callback, nullptr );
 }
 
 ID3D11ShaderResourceView* renderer_manager::load_texture_from_memory( void* data, size_t size ) {

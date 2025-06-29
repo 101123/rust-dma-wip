@@ -31,7 +31,6 @@ public:
 
 	ID3D11ShaderResourceView* load_texture_from_memory( void* data, size_t size );
 
-private:
 	bool create_render_target();
 	bool create_d3d_device();
 

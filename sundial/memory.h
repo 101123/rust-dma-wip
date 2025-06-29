@@ -2,6 +2,13 @@
 
 #include "dma.h"
 
+template <typename A>
+inline bool read_memory( A address, void* buffer, size_t size ) {
+    static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
+
+    return dma.read_memory( ( uintptr_t )address, buffer, size );
+}
+
 template <typename T>
 inline void write_memory( uintptr_t address, T value ) {
     dma.write_memory( address, &value, sizeof( value ) );
