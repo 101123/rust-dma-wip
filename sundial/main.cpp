@@ -28,13 +28,14 @@ struct parent_lookup {
 };
 
 class_lookup class_lookups[] = {
+    { nullptr, &BaseNetworkable::static_fields, BaseNetworkable_Static_TypeDefinitionIndex },
     { nullptr, &TerrainMeta::static_fields, TerrainMeta_TypeDefinitionIndex },
     { nullptr, &World::static_fields, World_Static_TypeDefinitionIndex },
     { nullptr, &MainCamera::static_fields, MainCamera_TypeDefinitionIndex }
 };
 
 parent_lookup parent_lookups[] = {
-
+    { nullptr, nullptr, 0 }
 };
 
 bool populate_classes() {
@@ -58,52 +59,12 @@ bool populate_classes() {
         }
 
         if ( class_lookup.m_static_fields ) {
-            *( uintptr_t* )( class_lookup.m_static_fields ) = read_memory<uintptr_t>( klass + 0xB8 );
+            *( uintptr_t* )( class_lookup.m_static_fields ) = klass->static_fields;
         }
     }
 
     return true;
 }
-
-template <typename Type, size_t Offset>
-class Field {
-public:
-    operator int() {
-        return Offset;
-    }
-
-    void* print_this() {
-        return this;
-    }
-};
-
-class PlayerModel {
-public:
-
-};
-
-class PlayerInput {
-public:
-
-};
-
-class BaseMovement {
-public:
-
-};
-
-class BasePlayer {
-public:
-    Field<PlayerModel*, Offsets::BasePlayer::playerModel> playerModel;
-    Field<PlayerInput*, Offsets::BasePlayer::input> input;
-    Field<BaseMovement*, Offsets::BasePlayer::movement> movement;
-    Field<uint64_t, Offsets::BasePlayer::currentTeam> currentTeam;
-    Field<uint64_t, Offsets::BasePlayer::clActiveItem> clActiveItem;
-
-    void* print_this() {
-        return this;
-    }
-};
 
 struct MapImageConfig {
     Vector4 StartColor;
@@ -182,23 +143,23 @@ ID3D11ShaderResourceView* render( MapImageConfig* config ) {
 
     int shore_map_size = terrain_texturing->shoreMapSize;
     float shore_distance_scale = terrain_texturing->shoreDistanceScale;
-    auto [ shore_vector_count, shore_vectors ] = terrain_texturing->shoreVectors.get();
-    if ( !shore_vectors || !shore_vector_count ) 
+    auto [ shore_vector_count, shore_vectors ] = terrain_texturing->shoreVectors.value.get();
+    if ( !shore_vectors || !shore_vector_count )
         return nullptr;
 
     int height_map_res = terrain_height_map->res;
     float height_map_norm_y = terrain_height_map->normY;
-    auto [ height_map_count, height_map ] = terrain_height_map->src.get();
+    auto [ height_map_count, height_map ] = terrain_height_map->src.value.get();
     if ( !height_map || !height_map_count )
         return nullptr;
 
     int splat_map_res = terrain_splat_map->res;
-    auto [ splat_map_count, splat_map ] = terrain_splat_map->src.get();
+    auto [ splat_map_count, splat_map ] = terrain_splat_map->src.value.get();
     if ( !splat_map || !splat_map_count )
         goto cleanup;
 
     int topology_map_res = terrain_topology_map->res;
-    auto [ topology_map_count, topology_map ] = terrain_topology_map->src.get();
+    auto [ topology_map_count, topology_map ] = terrain_topology_map->src.value.get();
     if ( !topology_map || !topology_map_count ) 
         goto cleanup;
 
@@ -332,6 +293,8 @@ cleanup:
     return srv;
 }
 
+#include "cache.h"
+
 int main() {
     if ( !dma.initialize() ) {
         LOG( "failed to initialize dma!\n" );
@@ -366,24 +329,12 @@ int main() {
 
         Sleep( 1000 );
     }
-
-    LOG( "%p\n", MainCamera::static_fields->mainCamera );
-
-    //auto minimap = render( &DefaultConfig );
-
-
+ 
+    cache_thread();
 
     while ( true ) {
-        renderer.begin_frame();
-        //renderer.draw_image( 100.f, 100.f, 400.f, 400.f, minimap );
-        renderer.end_frame();
+        Sleep( 1000 );
     }
-
-    //CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )render_thread, NULL, 0, NULL );
-
-    //while ( true ) {
-    //    Sleep( 1000 );
-    //}
 
     return 0;
 }

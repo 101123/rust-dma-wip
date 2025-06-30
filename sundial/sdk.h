@@ -10,22 +10,6 @@
 
 #include <tuple>
 
-#define ixstringify( x ) #x
-#define xstringify( x ) ixstringify( x )
-#define ixstrcat( x, y ) x##y
-#define xstrcat( x, y ) ixstrcat( x, y )
-    
-#define FIELD( Type, Name, Offset )                                                                     \
-    Type xstrcat( _Get, Name )() const {                                                                \
-        return read_memory<Type>( reinterpret_cast<uintptr_t>( this ) + Offset );                       \
-    }                                                                                                   \
-                                                                                                        \
-    void xstrcat( _Set, Name )( Type Value ) {                                                          \
-        write_memory<Type>( reinterpret_cast<uintptr_t>( this ) + Offset, Value );                      \
-    }                                                                                                   \
-                                                                                                        \
-    __declspec( property( get = xstrcat( _Get, Name ), put = xstrcat( _Set, Name ) ) ) Type Name;
-
 using Vector2 = Vector2f;
 using Vector3 = Vector3f;
 using Vector4 = Vector4f;
@@ -56,13 +40,102 @@ struct NativeArray {
 
 class Il2CppClass {
 public:
+    FIELD( uintptr_t, static_fields, Offsets::Il2CppClass::static_fields );
+};
 
+template <typename T, void( *DecryptHandle )( uint32_t* )>
+class HiddenValue {
+public:
+    [[msvc::no_unique_address]] Field<uintptr_t, Offsets::HiddenValue::_handle, DecryptHandle> _handle;
+};
+
+#define HIDDEN_VALUE( Type, Name, Offset, DecryptHandle ) \
+    static void _Decrypt##Name( uint32_t* values ) { for ( size_t i = 0; i < ( sizeof( uintptr_t ) / sizeof( uint32_t ) ); i++ ) { DecryptHandle } }; \
+    [[msvc::no_unique_address]] Field<HiddenValue<Type, _Decrypt##Name>*, Offset> Name
+
+
+
+
+template <typename T>
+class Array {
+private:
+    uint8_t _[ 0x18 ];
+public:
+    uint64_t _size;
+    T _buffer[ 0 ];
+};
+
+template <typename T>
+class List {
+private:
+    uint8_t _[ 0x10 ];
+public:
+    Array<T>* _items;
+    int _size;
+};
+
+template <typename Key, typename Value>
+class Dictionary {
+public:
+    struct Entry {
+        int hashCode;
+        int next;
+        Key key;
+        Value value;
+    };
+
+    FIELD( Array<Entry>*, _entries, 0x18 );
+    FIELD( int, _count, 0x20 );
+};
+
+template <typename T>
+class BufferList {
+public:
+    FIELD( int, count, Offsets::System_BufferList::count );
+    FIELD( Array<T>*, buffer, Offsets::System_BufferList::buffer );
+};
+
+template <typename Key, typename Value>
+class ListDictionary {
+public:
+    FIELD( BufferList<Value>*, vals, Offsets::System_ListDictionary::vals );
 };
 
 
 
+class BaseNetworkable {
+public:
+    class EntityRealm {
+    public:
+        typedef ListDictionary<uint64_t, BaseNetworkable*>* Type;
+        HIDDEN_VALUE( Type, entityList, Offsets::BaseNetworkable_EntityRealm::entityList,
+            {
+                values[ i ] = ( ( ( values[ i ] << 22 ) |
+                    ( values[ i ] >> 10 ) ) - 1225147140 ) ^ 0xFA11D865;
+            }
+        );
+    };
 
+    class StaticFields {
+    public:
+        HIDDEN_VALUE( EntityRealm*, clientEntities, Offsets::BaseNetworkable_Static::clientEntities,
+            {
+                values[ i ] = ( ( ( values[ i ] - 2068828434 ) << 13 ) |
+                    ( ( unsigned int )( values[ i ] - 2068828434 ) >> 19 ) ) - 789718271;
+            }
+        );
+    };
 
+    static inline StaticFields* static_fields;
+};
+
+class BasePlayer {
+public:
+    class StaticFields {
+    public:
+
+    };
+};
 
 class Camera {
 public:
