@@ -2,24 +2,22 @@
 
 #include "offsets.h"
 #include "offsets_manual.h"
-#include "memory.h"
+#include "scatter.h"    
 
 #include <unity/Vector2.h>
 #include <unity/Vector3.h>
 #include <unity/Vector4.h>
 
-#include <tuple>
-
-using Vector2 = Vector2f;
-using Vector3 = Vector3f;
-using Vector4 = Vector4f;
+using vec2 = Vector2f;
+using vec3 = Vector3f;
+using vec4 = Vector4f;
 
 class Il2CppClass;
-class TerrainHeightMap;
-class TerrainSplatMap;
-class TerrainTopologyMap;
-class TerrainTexturing;
-class TerrainMeta;
+class terrain_height_map;
+class terrain_splat_map;
+class terrain_topology_map;
+class terrain_texturing;
+class terrain_meta;
 
 template <typename T>
 struct NativeArray {
@@ -53,8 +51,7 @@ public:
     static void _Decrypt##Name( uint32_t* values ) { for ( size_t i = 0; i < ( sizeof( uintptr_t ) / sizeof( uint32_t ) ); i++ ) { DecryptHandle } }; \
     [[msvc::no_unique_address]] Field<HiddenValue<Type, _Decrypt##Name>*, Offset> Name
 
-
-
+class base_player;
 
 template <typename T>
 class Array {
@@ -63,6 +60,12 @@ private:
 public:
     uint64_t _size;
     T _buffer[ 0 ];
+
+    T* read_all( int count, void* buffer = nullptr ) {
+        T* items = buffer ? ( T* )buffer : new T[ count ];
+        read_memory( _buffer, items, count * sizeof( T ) );
+        return items;
+    }
 };
 
 template <typename T>
@@ -93,6 +96,11 @@ class BufferList {
 public:
     FIELD( int, count, Offsets::System_BufferList::count );
     FIELD( Array<T>*, buffer, Offsets::System_BufferList::buffer );
+
+    std::tuple<int, Array<T>*> get() {
+        uint8_t _[ 128 ];
+        return read_memory<int, Array<T>*>( this, { Offsets::System_BufferList::count, Offsets::System_BufferList::buffer }, _ );
+    }
 };
 
 template <typename Key, typename Value>
@@ -102,13 +110,73 @@ public:
 };
 
 
+namespace Unity {
+    namespace Offsets {
+        constexpr const static size_t g_PlayerIsFocused = 0x1C00980;
+        constexpr const static size_t g_TimeManager = 0x1CA3978;
 
-class BaseNetworkable {
+        namespace GameObject {
+            constexpr const static size_t m_ScriptingObject = 0x28;
+            constexpr const static size_t m_Component = 0x30;
+            constexpr const static size_t m_IsActive = 0x56;
+            constexpr const static size_t m_Name = 0x60;
+        }
+
+        namespace Component {
+            constexpr const static size_t m_ScriptingObject = 0x28;
+            constexpr const static size_t m_GameObject = 0x30;
+        }
+
+        namespace TransformHierarchy {
+            constexpr const static size_t m_LocalTransforms = 0x18;
+            constexpr const static size_t m_ParentIndices = 0x20;
+            constexpr const static size_t m_LocalPosition = 0x90;
+        }
+
+        namespace Transform {
+            constexpr const static size_t m_TransformAccess = 0x38;
+            constexpr const static size_t m_Children = 0x70;
+        }
+
+        namespace Camera {
+            constexpr const static size_t m_WorldToClipMatrix = 0x30C;
+            constexpr const static size_t m_CullingMask = 0x43C;
+            constexpr const static size_t m_LastPosition = 0x454;
+        }
+
+        namespace TimeManager {
+            constexpr const static size_t m_RealTime = 0x70;
+            constexpr const static size_t m_ActiveTime = 0x90;
+            constexpr const static size_t m_FrameCount = 0xC8;
+        }
+    }
+
+    class Transform {
+
+    };
+}
+
+template <typename T = uintptr_t>
+class Object {
 public:
-    class EntityRealm {
+    FIELD( T, cached_ptr, Offsets::Object::m_CachedPtr );
+};
+
+class Transform : public Object<Unity::Transform*> {
+
+};
+
+
+
+
+
+
+class base_networkable {
+public:
+    class entity_realm {
     public:
-        typedef ListDictionary<uint64_t, BaseNetworkable*>* Type;
-        HIDDEN_VALUE( Type, entityList, Offsets::BaseNetworkable_EntityRealm::entityList,
+        typedef ListDictionary<uint64_t, base_networkable*>* Type;
+        HIDDEN_VALUE( Type, entity_list, Offsets::BaseNetworkable_EntityRealm::entityList,
             {
                 values[ i ] = ( ( ( values[ i ] << 22 ) |
                     ( values[ i ] >> 10 ) ) - 1225147140 ) ^ 0xFA11D865;
@@ -116,9 +184,9 @@ public:
         );
     };
 
-    class StaticFields {
+    class static_fields {
     public:
-        HIDDEN_VALUE( EntityRealm*, clientEntities, Offsets::BaseNetworkable_Static::clientEntities,
+        HIDDEN_VALUE( entity_realm*, client_entities, Offsets::BaseNetworkable_Static::clientEntities,
             {
                 values[ i ] = ( ( ( values[ i ] - 2068828434 ) << 13 ) |
                     ( ( unsigned int )( values[ i ] - 2068828434 ) >> 19 ) ) - 789718271;
@@ -126,88 +194,165 @@ public:
         );
     };
 
-    static inline StaticFields* static_fields;
+    static inline static_fields* static_fields;
 };
 
-class BasePlayer {
+
+
+
+class model {
 public:
-    class StaticFields {
+    FIELD( Array<Transform*>*, bone_transforms, Offsets::Model::boneTransforms );
+};
+
+
+class base_entity {
+public:
+    FIELD( model*, model, Offsets::BaseEntity::model );
+    FIELD( int, flags, Offsets::BaseEntity::flags );
+};
+
+
+
+
+
+
+class base_combat_entity : public base_entity {
+public:
+    FIELD( int, lifestate, Offsets::BaseCombatEntity::lifestate );
+    FIELD( float, health, Offsets::BaseCombatEntity::_health );
+    FIELD( float, max_health, Offsets::BaseCombatEntity::_maxHealth );
+};
+
+
+
+
+
+class player_model {
+public:
+
+};
+
+class player_input {
+public:
+
+};
+
+class base_movement {
+public:
+
+};
+
+class player_walk_movement : public base_movement {
+public:
+
+};
+
+class base_player : public base_combat_entity {
+public:
+    class static_fields {
     public:
-
+        typedef ListDictionary<uint64_t, base_player*>* Type;
+        HIDDEN_VALUE( Type, visible_player_list, Offsets::BasePlayer_Static::visiblePlayerList,
+            {
+                values[ i ] = ( ( ( values[ i ] - 2068828434 ) << 13 ) |
+                    ( ( unsigned int )( values[ i ] - 2068828434 ) >> 19 ) ) - 789718271;
+            }
+        );
     };
+
+    FIELD( player_model*, player_model, Offsets::BasePlayer::playerModel );
+    FIELD( player_input*, input, Offsets::BasePlayer::input );
+    FIELD( player_walk_movement*, movement, Offsets::BasePlayer::movement );
+    FIELD( uint64_t, current_team, Offsets::BasePlayer::currentTeam );
+
+    inline static static_fields* static_fields;
 };
 
-class Camera {
+
+
+
+
+
+class camera {
 public:
 
 };
 
 
-class MainCamera {
+class main_camera {
 public:
-    class StaticFields {
+    class static_fields {
     public:
-        FIELD( Camera*, mainCamera, Offsets::MainCamera::mainCamera );
+        FIELD( camera*, main_camera, Offsets::MainCamera::mainCamera );
     };
 
-    inline static StaticFields* static_fields;
+    inline static static_fields* static_fields;
 };
 
 
 
 
-class World {
+class world {
 public:
-    class StaticFields {
+    class static_fields {
     public:
-        FIELD( int, _size, Offsets::World_Static::_size );
+        FIELD( int, size, Offsets::World_Static::_size );
     };
 
-    inline static StaticFields* static_fields;
+    inline static static_fields* static_fields;
 };
 
 #define BYTE_TO_FLOAT( b ) ( float )b * 0.003921569f
 #define FLOAT_TO_BYTE( f ) ( uint8_t )f * 255.999f;
 #define SHORT_TO_FLOAT( s ) ( float )s * 3.051944E-05f;
 
-class Mathf {
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
+class mathf {
 public:
-    static bool IsPowerOfTwo( int value ) {
+    static bool is_power_of_two( int value ) {
         return ( value & ( value - 1 ) ) == 0;
     }
 
-    static int Clamp( int value, int min, int max ) {
+    static int clamp( int value, int min, int max ) {
         return ( value < min ) ? min : ( value > max ) ? max : value;
     }
 
-    static float Clamp( float value, float min, float max ) {
+    static float clamp( float value, float min, float max ) {
         return ( value < min ) ? min : ( value > max ) ? max : value;
     }
 
-    static float Clamp01( float value ) {
+    static float clamp01( float value ) {
         return ( value < 0.f ) ? 0.f : ( value > 1.f ) ? 1.f : value;
     }
 
-    static int Min( int a, int b ) {
+    static int min( int a, int b ) {
         return a < b ? a : b;
     }
 
-    static float Max( float a, float b ) {
+    static float max( float a, float b ) {
         return a > b ? a : b;
     }
 
-    static float Lerp( float a, float b, float t ) {
-        return a + ( b - a ) * Clamp01( t );
+    static float lerp( float a, float b, float t ) {
+        return a + ( b - a ) * clamp01( t );
     }
 };
 
 template <typename T>
-class TerrainMap {
+class terrain_map {
 public:
     FIELD( int, res, Offsets::TerrainMap::res );
     FIELD( NativeArray<T>, src, Offsets::TerrainMap::src );
 
-    int Index( float normalized, int res ) {
+    int index( float normalized, int res ) {
         int num = ( int )( normalized * ( float )res );
         if ( num < 0 ) {
             return 0;
@@ -221,50 +366,50 @@ public:
     }
 };
 
-class TerrainHeightMap : public TerrainMap<uint16_t> {
+class terrain_height_map : public terrain_map<uint16_t> {
 public:
-    FIELD( float, normY, Offsets::TerrainHeightMap::normY );
+    FIELD( float, norm_y, Offsets::TerrainHeightMap::normY );
 
-    float GetHeight( float normX, float normZ, Vector3 terrainPosition, Vector3 terrainSize, int res, uint16_t* heightMap );
-    float GetHeight01( float normX, float normZ, int res, uint16_t* heightMap );
-    float GetHeight01( int x, int z, int res, uint16_t* heightMap );
-    Vector3 GetNormal( float normX, float normZ, int res, uint16_t* heightMap, float normY );
-    Vector3 GetNormal( int x, int z, int res, uint16_t* heightMap, float normY );
+    float get_height( float norm_x, float norm_z, vec3 terrain_position, vec3 terrain_size, int res, uint16_t* height_map );
+    float get_height_01( float norm_x, float norm_z, int res, uint16_t* height_map );
+    float get_height_01( int x, int z, int res, uint16_t* height_map );
+    vec3 get_normal( float norm_x, float norm_z, int res, uint16_t* height_map, float norm_y );
+    vec3 get_normal( int x, int z, int res, uint16_t* height_map, float norm_y );
 };
 
-class TerrainSplatMap : public TerrainMap<uint8_t> {
+class terrain_splat_map : public terrain_map<uint8_t> {
 public:
-    float GetSplat( float normX, float normZ, int mask, int res, uint8_t* splatMap );
-    float GetSplat( int x, int z, int mask, int res, uint8_t* splatMap );
+    float get_splat( float norm_x, float norm_z, int mask, int res, uint8_t* splat_map );
+    float get_splat( int x, int z, int mask, int res, uint8_t* splat_map );
 };
 
-class TerrainTopologyMap : public TerrainMap<int32_t> {
+class terrain_topology_map : public terrain_map<int32_t> {
 public:
-    int GetTopology( float normX, float normZ, float radius, Vector3 terrainOneOverSize, int res, int32_t* topologyMap );
+    int get_topology( float norm_x, float norm_z, float radius, vec3 terrain_one_over_size, int res, int32_t* topology_map );
 };
 
-class TerrainTexturing {
+class terrain_texturing {
 public:
-    FIELD( float, terrainSize, Offsets::TerrainTexturing::terrainSize );
-    FIELD( int, shoreMapSize, Offsets::TerrainTexturing::shoreMapSize );
-    FIELD( float, shoreDistanceScale, Offsets::TerrainTexturing::shoreDistanceScale );
-    FIELD( NativeArray<Vector4>, shoreVectors, Offsets::TerrainTexturing::shoreVectors );
+    FIELD( float, terrain_size, Offsets::TerrainTexturing::terrainSize );
+    FIELD( int, shore_map_size, Offsets::TerrainTexturing::shoreMapSize );
+    FIELD( float, shore_distance_scale, Offsets::TerrainTexturing::shoreDistanceScale );
+    FIELD( NativeArray<vec4>, shore_vectors, Offsets::TerrainTexturing::shoreVectors );
 
-    std::pair<Vector3, float> GetCoarseVectorToShore( Vector2 uv, int shoreMapSize, Vector4* shoreVectors, float shoreDistanceScale );
+    std::pair<vec3, float> get_coarse_vector_to_shore( vec2 uv, int shore_map_size, vec4* shore_vectors, float shore_distance_scale );
 };
 
-class TerrainMeta {
+class terrain_meta {
 public:
-    class StaticFields {
+    class static_fields {
     public:
-        FIELD( Vector3, Position, Offsets::TerrainMeta::Position );
-        FIELD( Vector3, Size, Offsets::TerrainMeta::Size );
-        FIELD( Vector3, OneOverSize, Offsets::TerrainMeta::OneOverSize );
-        FIELD( TerrainHeightMap*, HeightMap, Offsets::TerrainMeta::HeightMap );
-        FIELD( TerrainSplatMap*, SplatMap, Offsets::TerrainMeta::SplatMap );
-        FIELD( TerrainTopologyMap*, TopologyMap, Offsets::TerrainMeta::TopologyMap );
-        FIELD( TerrainTexturing*, Texturing, Offsets::TerrainMeta::Texturing );
+        FIELD( vec3, position, Offsets::TerrainMeta::Position );
+        FIELD( vec3, size, Offsets::TerrainMeta::Size );
+        FIELD( vec3, one_over_size, Offsets::TerrainMeta::OneOverSize );
+        FIELD( terrain_height_map*, height_map, Offsets::TerrainMeta::HeightMap );
+        FIELD( terrain_splat_map*, splat_map, Offsets::TerrainMeta::SplatMap );
+        FIELD( terrain_topology_map*, topology_map, Offsets::TerrainMeta::TopologyMap );
+        FIELD( terrain_texturing*, texturing, Offsets::TerrainMeta::Texturing );
     };
 
-    static inline StaticFields* static_fields;
+    static inline static_fields* static_fields;
 };

@@ -2,6 +2,9 @@
 
 #include "dma.h"
 
+#include <array>
+#include <tuple>
+
 template <typename A>
 inline bool read_memory( A address, void* buffer, size_t size ) {
     static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
@@ -23,69 +26,53 @@ inline T read_memory( A address ) {
     return buffer;
 }
 
-#include "field.h"
-
-class scatter_request {
-public:
-    scatter_request() {
-        m_handle = dma.initialize_scatter_request();
-        m_dirty = false;
-    }
-
-    ~scatter_request() {
-        if ( initialized() ) {
-            dma.free_scatter_request( m_handle );
+template <size_t N>
+constexpr inline size_t _minimum( const std::array<size_t, N>& values ) {
+    size_t minimum = values[ 0 ];
+    for ( size_t i = 1; i < N; ++i ) {
+        if ( values[ i ] < minimum ) {
+            minimum = values[ i ];
         }
-
-        m_handle = nullptr;
     }
 
-    scatter_request( const scatter_request& ) = delete;
-    scatter_request& operator=( const scatter_request& ) = delete;
+    return minimum;
+}
 
-    bool initialized() {
-        return m_handle != nullptr;
+template <size_t N>
+constexpr inline size_t _maximum( const std::array<size_t, N>& values ) {
+    size_t maximum = values[ 0 ];
+    for ( size_t i = 1; i < N; ++i ) {
+        if ( values[ i ] > maximum ) {
+            maximum = values[ i ];
+        }
     }
 
-    bool clear() {
-        m_dirty = false;
+    return maximum;
+}
 
-        return dma.clear_scatter_request( m_handle );
-    }
+template <typename... Types, typename T, size_t N = sizeof...( Types )>
+inline std::tuple<Types...> read_memory( T address, const std::array<size_t, N>& offsets, uint8_t* alloc = nullptr ) {
+    static_assert( sizeof( T ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
 
-    template <typename T, typename A>
-    bool add_read( T address, A* buffer ) {
-        m_dirty = true;
-        static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
-
-        return dma.add_scatter_read( m_handle, (uintptr_t)address, buffer, sizeof( buffer ) );
-    }
-
-    template <typename Type, size_t Offset>
-    bool add_read( Field<Type, Offset>* field, Type* result ) {
-        return add_read( field->address_of(), result );
-    }
-
-    template <typename T, typename A>
-    bool add_write( T address, A* buffer ) {
-        m_dirty = true;
-        static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
-
-        return dma.add_scatter_write( m_handle, ( uintptr_t )address, buffer, sizeof( buffer ) );
-    }
-
-    bool execute() {
-        return dma.execute_scatter_request( m_handle );
-    }
-
-    bool dirty() {
-        return m_dirty;
-    }
-
-private:
-    void* m_handle;
-    bool m_dirty;
-};
+    size_t minimum = _minimum( offsets );
+    size_t maximum = _maximum( offsets );
+    size_t addon = 0;
+    size_t index = 0;
+    ( ..., (
+        offsets[ index ] == maximum ? addon = sizeof( Types ) : 0,
+        index++
+        ) );
+    size_t size = maximum - minimum + addon;
+    uint8_t* buffer = alloc ? alloc : ( uint8_t* )malloc( size );
+    if ( !buffer )
+        return {};
+    read_memory( ( uintptr_t )address + minimum, buffer, size );
+    index = 0;
+    std::tuple<Types...> result = { *( Types* )( buffer + offsets[ index++ ] - minimum )... };
+    if ( !alloc )
+        free( buffer );
+    return result;
+}
 
 uintptr_t find_pattern_image( uintptr_t image, const char* pattern );
 uintptr_t find_pattern_image_remote( uintptr_t image, const char* pattern );

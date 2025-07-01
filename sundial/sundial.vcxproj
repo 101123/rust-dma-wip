@@ -192,6 +192,7 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\memprocfs\leechcore.h" />
     <ClInclude Include="include\memprocfs\vmmdll.h" />
+    <ClInclude Include="include\spsc-queue.hpp" />
     <ClInclude Include="include\stb_image.h" />
     <ClInclude Include="include\unity\FloatConversion.h" />
     <ClInclude Include="include\unity\IntegerDefinitions.h" />
@@ -209,6 +210,7 @@
     <ClInclude Include="offsets_manual.h" />
     <ClInclude Include="render.h" />
     <ClInclude Include="renderer.h" />
+    <ClInclude Include="scatter.h" />
     <ClInclude Include="sdk.h" />
     <ClInclude Include="stream_reader.h" />
   </ItemGroup>

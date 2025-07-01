@@ -1,6 +1,6 @@
 #include "dma.h"
 
-// #define DMA
+#define DMA
 
 #ifdef DMA
 #include <memprocfs/vmmdll.h>

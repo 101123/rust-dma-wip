@@ -194,6 +194,12 @@
     <ClInclude Include="il2cpp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="scatter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\spsc-queue.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\memprocfs\leechcore.lib" />

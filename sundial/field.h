@@ -1,6 +1,7 @@
 #pragma once
 
-#include <cstdint>
+#include "memory.h"
+#include "global.h"
 
 template <typename Type, size_t Offset, void( *Decrypt )( uint32_t* ) = nullptr, void( *Encrypt )( uint32_t* ) = nullptr>
 class Field {
