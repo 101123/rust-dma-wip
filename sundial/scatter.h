@@ -3,6 +3,14 @@
 #include "memory.h"
 #include "field.h"
 
+#include <vector>
+
+struct nigga {
+    void* a;
+    void* b;
+    size_t c;
+};
+
 class scatter_request {
 public:
     scatter_request() {
@@ -11,6 +19,8 @@ public:
     }
 
     ~scatter_request() {
+        LOG( "Dtor!\n" );
+
         if ( initialized() ) {
             dma.free_scatter_request( m_handle );
         }
@@ -27,6 +37,7 @@ public:
 
     bool clear() {
         m_dirty = false;
+         //m_nigga.clear();
 
         return dma.clear_scatter_request( m_handle );
     }
@@ -34,7 +45,14 @@ public:
     template <typename T, typename A>
     bool add_read( T address, A* buffer, size_t size ) {
         m_dirty = true;
+
         static_assert( sizeof( T ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
+
+       /* nigga nig;
+        nig.a = ( void* )address;
+        nig.b = ( void* )buffer;
+        nig.c = size;
+        m_nigga.push_back( nig );*/
 
         return dma.add_scatter_read( m_handle, ( uintptr_t )address, buffer, size );
     }
@@ -64,11 +82,16 @@ public:
         return dma.execute_scatter_request( m_handle );
     }
 
+    bool execute_and_clear() {
+        return execute() && clear();
+    }
+
     bool dirty() {
         return m_dirty;
     }
 
 private:
+    // std::vector<nigga> m_nigga;
     void* m_handle;
     bool m_dirty;
 };

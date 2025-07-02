@@ -98,7 +98,7 @@ uintptr_t dma_manager::get_module_base_address( const char* name ) {
 bool dma_manager::read_memory( uintptr_t address, void* buffer, size_t size ) {
 #ifdef DMA
     DWORD read = 0;
-    BOOL result = VMMDLL_MemReadEx( ( VMM_HANDLE )m_handle, m_pid, address, ( PBYTE )buffer, size, NULL, VMMDLL_FLAG_NOCACHE );
+    BOOL result = VMMDLL_MemReadEx( ( VMM_HANDLE )m_handle, m_pid, address, ( PBYTE )buffer, size, NULL, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_SCATTER_PREPAREEX_NOMEMZERO );
     return result && read == size;
 #else
     return ReadProcessMemory( ( HANDLE )m_handle, ( LPCVOID )address, ( LPVOID )buffer, size, nullptr );
@@ -115,7 +115,7 @@ bool dma_manager::write_memory( uintptr_t address, void* buffer, size_t size ) {
 
 void* dma_manager::initialize_scatter_request() {
 #ifdef DMA
-    return VMMDLL_Scatter_Initialize( ( VMM_HANDLE )m_handle, m_pid, VMMDLL_FLAG_NOCACHE );
+    return VMMDLL_Scatter_Initialize( ( VMM_HANDLE )m_handle, m_pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_SCATTER_PREPAREEX_NOMEMZERO );
 #else
 
 #endif
@@ -131,7 +131,7 @@ void dma_manager::free_scatter_request( void* scatter_handle ) {
 
 bool dma_manager::clear_scatter_request( void* scatter_handle ) {
 #ifdef DMA
-    return VMMDLL_Scatter_Clear( scatter_handle, m_pid, VMMDLL_FLAG_NOCACHE );
+    return VMMDLL_Scatter_Clear( scatter_handle, m_pid, VMMDLL_FLAG_NOCACHE |VMMDLL_FLAG_SCATTER_PREPAREEX_NOMEMZERO );
 #else
     return true;
 #endif

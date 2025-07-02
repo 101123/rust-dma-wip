@@ -123,6 +123,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalOptions>-Wno-c++17-extensions %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -140,6 +141,11 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>false</ExceptionHandling>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,6 +158,7 @@
   <ItemGroup>
     <ClCompile Include="assets.cpp" />
     <ClCompile Include="cache.cpp" />
+    <ClCompile Include="engine.cpp" />
     <ClCompile Include="dma.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
@@ -173,10 +180,12 @@
     <ClCompile Include="render.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="sdk.cpp" />
+    <ClCompile Include="update.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assets.h" />
     <ClInclude Include="cache.h" />
+    <ClInclude Include="engine.h" />
     <ClInclude Include="dma.h" />
     <ClInclude Include="field.h" />
     <ClInclude Include="global.h" />
@@ -213,6 +222,9 @@
     <ClInclude Include="scatter.h" />
     <ClInclude Include="sdk.h" />
     <ClInclude Include="stream_reader.h" />
+    <ClInclude Include="shared.h" />
+    <ClInclude Include="update.h" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\memprocfs\leechcore.lib" />

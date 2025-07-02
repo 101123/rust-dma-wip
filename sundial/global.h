@@ -1,6 +1,13 @@
 #pragma once
 
+#include "util.h"
+
+#include <imgui/imgui.h>
+
 #include <cstdio>
+
+template<typename T>
+using fast_vector = ImVector<T>;
 
 #ifndef DEBUG
 #define LOG( msg, ... ) printf( msg, __VA_ARGS__ );

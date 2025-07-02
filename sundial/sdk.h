@@ -7,10 +7,12 @@
 #include <unity/Vector2.h>
 #include <unity/Vector3.h>
 #include <unity/Vector4.h>
+#include <unity/Matrix4x4.h>
 
 using vec2 = Vector2f;
 using vec3 = Vector3f;
 using vec4 = Vector4f;
+using mat4x4 = Matrix4x4f;
 
 class Il2CppClass;
 class terrain_height_map;
@@ -18,23 +20,6 @@ class terrain_splat_map;
 class terrain_topology_map;
 class terrain_texturing;
 class terrain_meta;
-
-template <typename T>
-struct NativeArray {
-    void* m_Buffer;
-    int m_Length;
-    int m_AllocatorLabel;
-
-    std::pair<int, T*> get() {
-        if ( !m_Buffer || !m_Length )
-            return { 0, nullptr };
-
-        T* buffer = new T[ m_Length ];
-        read_memory( m_Buffer, buffer, m_Length * sizeof( T ) );
-
-        return { m_Length, buffer };
-    }
-};
 
 class Il2CppClass {
 public:
@@ -53,64 +38,131 @@ public:
 
 class base_player;
 
-template <typename T>
-class Array {
-private:
-    uint8_t _[ 0x18 ];
-public:
-    uint64_t _size;
-    T _buffer[ 0 ];
+namespace sys {
+    template <typename T>
+    class array {
+    private:
+        uint8_t _[ 0x18 ];
+    public:
+        uint64_t size;
+        T buffer[ 0 ];
 
-    T* read_all( int count, void* buffer = nullptr ) {
-        T* items = buffer ? ( T* )buffer : new T[ count ];
-        read_memory( _buffer, items, count * sizeof( T ) );
-        return items;
-    }
-};
-
-template <typename T>
-class List {
-private:
-    uint8_t _[ 0x10 ];
-public:
-    Array<T>* _items;
-    int _size;
-};
-
-template <typename Key, typename Value>
-class Dictionary {
-public:
-    struct Entry {
-        int hashCode;
-        int next;
-        Key key;
-        Value value;
+        T* read_all( int count, void* buffer = nullptr ) {
+            T* items = buffer ? ( T* )buffer : new T[ count ];
+            read_memory( this->buffer, items, count * sizeof( T ) );
+            return items;
+        }
     };
 
-    FIELD( Array<Entry>*, _entries, 0x18 );
-    FIELD( int, _count, 0x20 );
-};
+    template <typename T>
+    class list {
+    private:
+        uint8_t _[ 0x10 ];
+    public:
+        sys::array<T>* items;
+        int size;
+    };
 
-template <typename T>
-class BufferList {
-public:
-    FIELD( int, count, Offsets::System_BufferList::count );
-    FIELD( Array<T>*, buffer, Offsets::System_BufferList::buffer );
+    template <typename T>
+    class buffer_list {
+    public:
+        FIELD( int, count, Offsets::System_BufferList::count );
+        FIELD( sys::array<T>*, buffer, Offsets::System_BufferList::buffer );
 
-    std::tuple<int, Array<T>*> get() {
-        uint8_t _[ 128 ];
-        return read_memory<int, Array<T>*>( this, { Offsets::System_BufferList::count, Offsets::System_BufferList::buffer }, _ );
+        std::tuple<int, sys::array<T>*> get() {
+            uint8_t _[ 128 ];
+            return read_memory<int, sys::array<T>*>( this, { Offsets::System_BufferList::count, Offsets::System_BufferList::buffer }, _ );
+        }
+    };
+
+    template <typename K, typename V>
+    class dictionary {
+    public:
+        struct entry {
+            int hash_code;
+            int next;
+            K key;
+            V value;
+        };
+
+        FIELD( sys::array<entry>*, entries, 0x18 );
+        FIELD( int, count, 0x20 );
+    };
+
+    template <typename K, typename V>
+    class list_dictionary {
+    public:
+        FIELD( buffer_list<V>*, vals, Offsets::System_ListDictionary::vals );
+    };
+}
+
+namespace unity {
+    namespace collections {
+        template <typename T>
+        struct native_array {
+            void* buffer;
+            int length;
+            int allocator_label;
+
+            std::pair<int, T*> get() {
+                if ( !this->buffer || !this->length )
+                    return { 0, nullptr };
+
+                T* buffer = new T[ this->length ];
+                read_memory( this->buffer, buffer, length * sizeof( T ) );
+
+                return { length, buffer };
+            }
+        };
     }
-};
 
-template <typename Key, typename Value>
-class ListDictionary {
-public:
-    FIELD( BufferList<Value>*, vals, Offsets::System_ListDictionary::vals );
-};
+    namespace math {
+        class trsx {
+        public:
+            vec3 t;
+        private:
+            uint8_t _[ 4 ];
+        public:
+            vec4 q;
+            vec3 s;
+        private:
+            uint8_t __[ 4 ];
+        };
+    }
+
+    class transform_internal {
+    public:
+        transform_internal() = delete;
+        transform_internal( fast_vector<math::trsx>* local_transforms, fast_vector<int>* parent_indices ) :
+            m_local_transforms( local_transforms ), m_parent_indices( parent_indices ) {};
+
+        vec3 get_position( int index ) {
+            math::trsx* local_transforms = m_local_transforms->begin();
+            int* parent_indices = m_parent_indices->begin();
+
+            vec3 global_t = local_transforms[ index ].t;
+            int parent_index = parent_indices[ index ];
+
+            int iterations = 0;
+            while ( parent_index >= 0 && parent_index <= m_local_transforms->capacity() && iterations++ < 256 ) {
+                math::trsx& parent = local_transforms[ parent_index ];
+
+                global_t = parent.q * global_t;
+                global_t = global_t * parent.s;
+                global_t = global_t + parent.t;
+
+                parent_index = parent_indices[ parent_index ];
+            }
+
+            return global_t;
+        }
+
+    private:
+        fast_vector<math::trsx>* m_local_transforms;
+        fast_vector<int>* m_parent_indices;
+    };
 
 
-namespace Unity {
     namespace Offsets {
         constexpr const static size_t g_PlayerIsFocused = 0x1C00980;
         constexpr const static size_t g_TimeManager = 0x1CA3978;
@@ -128,13 +180,13 @@ namespace Unity {
         }
 
         namespace TransformHierarchy {
-            constexpr const static size_t m_LocalTransforms = 0x18;
-            constexpr const static size_t m_ParentIndices = 0x20;
+            constexpr const static size_t localTransforms = 0x18;
+            constexpr const static size_t parentIndices = 0x20;
             constexpr const static size_t m_LocalPosition = 0x90;
         }
 
         namespace Transform {
-            constexpr const static size_t m_TransformAccess = 0x38;
+            constexpr const static size_t m_TransformData = 0x38;
             constexpr const static size_t m_Children = 0x70;
         }
 
@@ -151,31 +203,51 @@ namespace Unity {
         }
     }
 
-    class Transform {
+    class camera {
+    public:
+        FIELD( mat4x4, view_matrix, Offsets::Camera::m_WorldToClipMatrix );
+        FIELD( int, layer_mask, Offsets::Camera::m_CullingMask );
+        FIELD( vec3, position, Offsets::Camera::m_LastPosition );
+    };
 
+    class component {
+
+    };
+
+    class transform_hierarchy {
+    public:
+        FIELD( math::trsx*, local_transforms, Offsets::TransformHierarchy::localTransforms );
+        FIELD( int*, parent_indices, Offsets::TransformHierarchy::parentIndices );
+    };
+
+    struct transform_access {
+        transform_hierarchy* hierarchy;
+        int index;
+    };
+
+    class transform : public component {
+    public:
+        FIELD( transform_access, transform_data, Offsets::Transform::m_TransformData );
     };
 }
 
+
+
 template <typename T = uintptr_t>
-class Object {
+class object {
 public:
     FIELD( T, cached_ptr, Offsets::Object::m_CachedPtr );
 };
 
-class Transform : public Object<Unity::Transform*> {
+class transform : public object<unity::transform*> {
 
 };
-
-
-
-
-
 
 class base_networkable {
 public:
     class entity_realm {
     public:
-        typedef ListDictionary<uint64_t, base_networkable*>* Type;
+        typedef sys::list_dictionary<uint64_t, base_networkable*>* Type;
         HIDDEN_VALUE( Type, entity_list, Offsets::BaseNetworkable_EntityRealm::entityList,
             {
                 values[ i ] = ( ( ( values[ i ] << 22 ) |
@@ -202,7 +274,7 @@ public:
 
 class model {
 public:
-    FIELD( Array<Transform*>*, bone_transforms, Offsets::Model::boneTransforms );
+    FIELD( sys::array<transform*>*, bone_transforms, Offsets::Model::boneTransforms );
 };
 
 
@@ -252,7 +324,7 @@ class base_player : public base_combat_entity {
 public:
     class static_fields {
     public:
-        typedef ListDictionary<uint64_t, base_player*>* Type;
+        typedef sys::list_dictionary<uint64_t, base_player*>* Type;
         HIDDEN_VALUE( Type, visible_player_list, Offsets::BasePlayer_Static::visiblePlayerList,
             {
                 values[ i ] = ( ( ( values[ i ] - 2068828434 ) << 13 ) |
@@ -274,7 +346,7 @@ public:
 
 
 
-class camera {
+class camera : public object<unity::camera*> {
 public:
 
 };
@@ -350,7 +422,7 @@ template <typename T>
 class terrain_map {
 public:
     FIELD( int, res, Offsets::TerrainMap::res );
-    FIELD( NativeArray<T>, src, Offsets::TerrainMap::src );
+    FIELD( unity::collections::native_array<T>, src, Offsets::TerrainMap::src );
 
     int index( float normalized, int res ) {
         int num = ( int )( normalized * ( float )res );
@@ -393,7 +465,7 @@ public:
     FIELD( float, terrain_size, Offsets::TerrainTexturing::terrainSize );
     FIELD( int, shore_map_size, Offsets::TerrainTexturing::shoreMapSize );
     FIELD( float, shore_distance_scale, Offsets::TerrainTexturing::shoreDistanceScale );
-    FIELD( NativeArray<vec4>, shore_vectors, Offsets::TerrainTexturing::shoreVectors );
+    FIELD( unity::collections::native_array<vec4>, shore_vectors, Offsets::TerrainTexturing::shoreVectors );
 
     std::pair<vec3, float> get_coarse_vector_to_shore( vec2 uv, int shore_map_size, vec4* shore_vectors, float shore_distance_scale );
 };

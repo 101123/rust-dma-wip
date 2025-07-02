@@ -4,13 +4,13 @@
 #include "offsets.h"
 #include "global.h"
 
-struct HandleData {
+struct handle_data {
 	uintptr_t bitmap;
 	uintptr_t entries;
 	uint32_t size;
 	uint8_t type;
-	uint32_t slotHint : 24;
-	uintptr_t domainIds;
+	uint32_t slot_hint : 24;
+	uintptr_t domain_ids;
 };
 
 template <typename T>
@@ -22,8 +22,8 @@ inline bool il2cpp_gchandle_get_target( uint32_t gchandle, T* result ) {
 	if ( type > 3 )
 		return false;
 
-	HandleData handles = read_memory<HandleData>(
-		game_assembly + Offsets::GameAssembly::gc_handles + ( sizeof( HandleData ) * type ) );
+	handle_data handles = read_memory<handle_data>(
+		game_assembly + Offsets::GameAssembly::gc_handles + ( sizeof( handle_data ) * type ) );
 
 	if ( slot < handles.size ) {
 		uint32_t slot_bits = read_memory<uint32_t>( handles.bitmap + ( sizeof( uint32_t ) * ( slot / 32 ) ) );

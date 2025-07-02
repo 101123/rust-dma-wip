@@ -28,6 +28,8 @@ public:
 
     Vector4f operator-() const                    { return Vector4f(-x, -y, -z, -w); }
 
+    Vector3f operator*( Vector3f value );
+
     float x;
     float y;
     float z;

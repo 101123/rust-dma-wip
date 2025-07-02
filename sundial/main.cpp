@@ -1,5 +1,4 @@
 ﻿#include "renderer.h"
-#include "render.h"
 #include "assets.h"
 #include "dma.h"
 #include "global.h"
@@ -112,195 +111,197 @@ MapImageConfig DefaultConfig = {
     .OceanMargin = 500,
     .ImageSize = nullptr
 };
-//
-//ID3D11ShaderResourceView* render( MapImageConfig* config ) {
-//    // Initialize these variables here in order to utilize gotos to avoid repeated code
-//    ID3D11ShaderResourceView* srv = nullptr;
-//    ID3D11Texture2D* texture = nullptr;
-//
-//    auto start = GetTickCount64();
-//    LOG( "Reading all data!\n" );
-//
-//    auto static_fields = terrain_meta::static_fields;
-//    if ( !static_fields )
-//        return nullptr;
-//
-//    terrain_texturing* terrain_texturing = static_fields->texturing;
-//    if ( !terrain_texturing )
-//        return nullptr;
-//
-//    terrain_height_map* terrain_height_map = static_fields->height_map;
-//    if ( !terrain_height_map )
-//        return nullptr;
-//
-//    terrain_splat_map* terrain_splat_map = static_fields->splat_map;
-//    if ( !terrain_splat_map )
-//        return nullptr;
-//
-//    terrain_topology_map* terrain_topology_map = static_fields->topology_map;
-//    if ( !terrain_topology_map )
-//        return nullptr;
-//
-//    vec3 terrain_position = static_fields->position;
-//    vec3 terrain_size = static_fields->size;
-//    vec3 terrain_one_over_size = static_fields->one_over_size;
-//
-//    int shore_map_size = terrain_texturing->shore_map_size;
-//    float shore_distance_scale = terrain_texturing->shore_distance_scale;
-//    auto [ shore_vector_count, shore_vectors ] = terrain_texturing->shore_vectors.value.get();
-//    if ( !shore_vectors || !shore_vector_count )
-//        return nullptr;
-//
-//    int height_map_res = terrain_height_map->res;
-//    float height_map_norm_y = terrain_height_map->norm_y;
-//    auto [ height_map_count, height_map ] = terrain_height_map->src.value.get();
-//    if ( !height_map || !height_map_count )
-//        return nullptr;
-//
-//    int splat_map_res = terrain_splat_map->res;
-//    auto [ splat_map_count, splat_map ] = terrain_splat_map->src.value.get();
-//    if ( !splat_map || !splat_map_count )
-//        goto cleanup;
-//
-//    int topology_map_res = terrain_topology_map->res;
-//    auto [ topology_map_count, topology_map ] = terrain_topology_map->src.value.get();
-//    if ( !topology_map || !topology_map_count ) 
-//        goto cleanup;
-//
-//    int map_res = ( int )( world::static_fields->size * mathf::clamp( config->Scale, 0.1f, 4.f ) );
-//    float inv_map_res = 1.f / ( float )map_res;
-//
-//    auto time = GetTickCount64() - start;
-//    LOG( "Done reading all data, took %llu seconds!\n", time / 1000 );
-//
-//    if ( map_res <= 0 ) 
-//        goto cleanup;
-//
-//    int image_width = map_res + config->OceanMargin * 2;
-//    int image_height = map_res + config->OceanMargin * 2;
-//    
-//    D3D11_TEXTURE2D_DESC texture_desc {
-//      .Width = ( uint32_t )image_width,
-//      .Height = ( uint32_t )image_height,
-//      .MipLevels = 1,
-//      .ArraySize = 1,
-//      .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-//      .SampleDesc = {
-//          .Count = 1,
-//          .Quality = 0
-//      },
-//
-//      .Usage = D3D11_USAGE_DYNAMIC,
-//      .BindFlags = D3D11_BIND_SHADER_RESOURCE,
-//      .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
-//      .MiscFlags = 0
-//    };
-//
-//    if ( renderer.m_device->CreateTexture2D( &texture_desc, nullptr, &texture ) != S_OK ) 
-//        goto cleanup;
-//
-//    D3D11_MAPPED_SUBRESOURCE resource;
-//    if ( renderer.m_device_context->Map( texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource ) != S_OK )
-//        goto cleanup;
-//
-//    for ( int y = 0; y < image_height; y++ ) {
-//        int cy = y - config->OceanMargin;
-//        float y2 = ( float )cy * inv_map_res;
-//        int w = map_res + config->OceanMargin;
-//
-//        for ( int cx = -config->OceanMargin; cx < w; cx++ ) {
-//            float x2 = ( float )cx * inv_map_res;
-//            float height = terrain_height_map->get_height( x2, y2, terrain_position, terrain_size, height_map_res, height_map );
-//
-//            vec4 color = config->StartColor;
-//
-//            color = Lerp( color, config->GravelColor, terrain_splat_map->get_splat( x2, y2, 7, splat_map_res, splat_map ) * config->GravelColor.w );
-//            color = Lerp( color, config->PebbleColor, terrain_splat_map->get_splat( x2, y2, 6, splat_map_res, splat_map ) * config->PebbleColor.w );
-//            color = Lerp( color, config->RockColor, terrain_splat_map->get_splat( x2, y2, 3, splat_map_res, splat_map ) * config->RockColor.w );
-//            color = Lerp( color, config->DirtColor, terrain_splat_map->get_splat( x2, y2, 0, splat_map_res, splat_map ) * config->DirtColor.w );
-//            color = Lerp( color, config->GrassColor, terrain_splat_map->get_splat( x2, y2, 4, splat_map_res, splat_map ) * config->GrassColor.w );
-//            color = Lerp( color, config->ForestColor, terrain_splat_map->get_splat( x2, y2, 5, splat_map_res, splat_map ) * config->ForestColor.w );
-//            color = Lerp( color, config->SandColor, terrain_splat_map->get_splat( x2, y2, 2, splat_map_res, splat_map ) * config->SandColor.w );
-//            color = Lerp( color, config->SnowColor, terrain_splat_map->get_splat( x2, y2, 1, splat_map_res, splat_map ) * config->SnowColor.w );
-//
-//            float depth_factor = 0.f;
-//            float shore_distance = terrain_texturing->get_coarse_vector_to_shore( vec2( x2, y2 ), shore_map_size, shore_vectors, shore_distance_scale ).second;
-//
-//            if ( shore_distance > 0.f ) {
-//                depth_factor = 0.f - height;    
-//
-//                if ( depth_factor <= 0.f || !( ( terrain_topology_map->get_topology( x2, y2, 16.f, terrain_one_over_size, topology_map_res, topology_map ) & 0x180 ) != 0 ) ) {
-//                    depth_factor = mathf::max( depth_factor, 0.1f * shore_distance );
-//                }
-//            }
-//
-//            if ( depth_factor > 0.f ) {
-//                color = Lerp( color, config->WaterColor, mathf::clamp( 0.5f + depth_factor / 5.f, 0.f, 1.f ) );
-//                color = Lerp( color, config->OffShoreColor, mathf::clamp( depth_factor / config->MaxDepth, 0.f, 1.f ) );
-//            }
-//
-//            else {
-//                static const vec4 half = vec4( 0.5f, 0.5f, 0.5f, 0.5f );
-//
-//                float diffuse = mathf::max( Dot( terrain_height_map->get_normal( x2, y2, height_map_res, height_map, height_map_norm_y ), config->SunDirection ), 0.f );
-//
-//                color = color + ( ( color * config->SunPower ) * ( diffuse - 0.5f ) );
-//                color = ( color - half ) * config->Contrast + half;
-//            }
-//
-//            color = color * config->Brightness;
-//
-//            int px = cx + config->OceanMargin;
-//            int py = cy + config->OceanMargin;
-//
-//            uint8_t* data = ( uint8_t* )resource.pData + ( py * resource.RowPitch ) + ( px * 4 );
-//
-//            data[ 0 ] = NormalizedToByte( color.x );
-//            data[ 1 ] = NormalizedToByte( color.y );
-//            data[ 2 ] = NormalizedToByte( color.z );
-//            data[ 3 ] = NormalizedToByte( 1.f );    
-//        }
-//    }
-//
-//    renderer.m_device_context->Unmap( texture, 0 );
-//
-//    D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc {
-//       .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-//       .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
-//       .Texture2D = {
-//           .MostDetailedMip = 0,
-//           .MipLevels = texture_desc.MipLevels
-//       }
-//    };
-//
-//    if ( renderer.m_device->CreateShaderResourceView( texture, &srv_desc, &srv ) != S_OK )
-//        goto cleanup;
-//
-//cleanup:
-//    if ( shore_vectors ) {
-//        delete[] shore_vectors;
-//    }
-//
-//    if ( height_map ) {
-//        delete[] height_map;
-//    }
-//
-//    if ( splat_map ) {
-//        delete[] splat_map;
-//    }
-//
-//    if ( topology_map ) {
-//        delete[] topology_map;
-//    }
-//
-//    if ( texture ) {
-//        texture->Release();
-//    }
-//
-//    return srv;
-//}
+
+ID3D11ShaderResourceView* render( MapImageConfig* config ) {
+    // Initialize these variables here in order to utilize gotos to avoid repeated code
+    ID3D11ShaderResourceView* srv = nullptr;
+    ID3D11Texture2D* texture = nullptr;
+
+    auto start = GetTickCount64();
+    LOG( "Reading all data!\n" );
+
+    auto static_fields = terrain_meta::static_fields;
+    if ( !static_fields )
+        return nullptr;
+
+    terrain_texturing* terrain_texturing = static_fields->texturing;
+    if ( !terrain_texturing )
+        return nullptr;
+
+    terrain_height_map* terrain_height_map = static_fields->height_map;
+    if ( !terrain_height_map )
+        return nullptr;
+
+    terrain_splat_map* terrain_splat_map = static_fields->splat_map;
+    if ( !terrain_splat_map )
+        return nullptr;
+
+    terrain_topology_map* terrain_topology_map = static_fields->topology_map;
+    if ( !terrain_topology_map )
+        return nullptr;
+
+    vec3 terrain_position = static_fields->position;
+    vec3 terrain_size = static_fields->size;
+    vec3 terrain_one_over_size = static_fields->one_over_size;
+
+    int shore_map_size = terrain_texturing->shore_map_size;
+    float shore_distance_scale = terrain_texturing->shore_distance_scale;
+    auto [ shore_vector_count, shore_vectors ] = terrain_texturing->shore_vectors.value.get();
+    if ( !shore_vectors || !shore_vector_count )
+        return nullptr;
+
+    int height_map_res = terrain_height_map->res;
+    float height_map_norm_y = terrain_height_map->norm_y;
+    auto [ height_map_count, height_map ] = terrain_height_map->src.value.get();
+    if ( !height_map || !height_map_count )
+        return nullptr;
+
+    int splat_map_res = terrain_splat_map->res;
+    auto [ splat_map_count, splat_map ] = terrain_splat_map->src.value.get();
+    if ( !splat_map || !splat_map_count )
+        goto cleanup;
+
+    int topology_map_res = terrain_topology_map->res;
+    auto [ topology_map_count, topology_map ] = terrain_topology_map->src.value.get();
+    if ( !topology_map || !topology_map_count ) 
+        goto cleanup;
+
+    int map_res = ( int )( world::static_fields->size * mathf::clamp( config->Scale, 0.1f, 4.f ) );
+    float inv_map_res = 1.f / ( float )map_res;
+
+    auto time = GetTickCount64() - start;
+    LOG( "Done reading all data, took %llu seconds!\n", time / 1000 );
+
+    if ( map_res <= 0 ) 
+        goto cleanup;
+
+    int image_width = map_res + config->OceanMargin * 2;
+    int image_height = map_res + config->OceanMargin * 2;
+    
+    D3D11_TEXTURE2D_DESC texture_desc {
+      .Width = ( uint32_t )image_width,
+      .Height = ( uint32_t )image_height,
+      .MipLevels = 1,
+      .ArraySize = 1,
+      .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+      .SampleDesc = {
+          .Count = 1,
+          .Quality = 0
+      },
+
+      .Usage = D3D11_USAGE_DYNAMIC,
+      .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+      .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+      .MiscFlags = 0
+    };
+
+    if ( renderer.m_device->CreateTexture2D( &texture_desc, nullptr, &texture ) != S_OK ) 
+        goto cleanup;
+
+    D3D11_MAPPED_SUBRESOURCE resource;
+    if ( renderer.m_device_context->Map( texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource ) != S_OK )
+        goto cleanup;
+
+    for ( int y = 0; y < image_height; y++ ) {
+        int cy = y - config->OceanMargin;
+        float y2 = ( float )cy * inv_map_res;
+        int w = map_res + config->OceanMargin;
+
+        for ( int cx = -config->OceanMargin; cx < w; cx++ ) {
+            float x2 = ( float )cx * inv_map_res;
+            float height = terrain_height_map->get_height( x2, y2, terrain_position, terrain_size, height_map_res, height_map );
+
+            vec4 color = config->StartColor;
+
+            color = Lerp( color, config->GravelColor, terrain_splat_map->get_splat( x2, y2, 7, splat_map_res, splat_map ) * config->GravelColor.w );
+            color = Lerp( color, config->PebbleColor, terrain_splat_map->get_splat( x2, y2, 6, splat_map_res, splat_map ) * config->PebbleColor.w );
+            color = Lerp( color, config->RockColor, terrain_splat_map->get_splat( x2, y2, 3, splat_map_res, splat_map ) * config->RockColor.w );
+            color = Lerp( color, config->DirtColor, terrain_splat_map->get_splat( x2, y2, 0, splat_map_res, splat_map ) * config->DirtColor.w );
+            color = Lerp( color, config->GrassColor, terrain_splat_map->get_splat( x2, y2, 4, splat_map_res, splat_map ) * config->GrassColor.w );
+            color = Lerp( color, config->ForestColor, terrain_splat_map->get_splat( x2, y2, 5, splat_map_res, splat_map ) * config->ForestColor.w );
+            color = Lerp( color, config->SandColor, terrain_splat_map->get_splat( x2, y2, 2, splat_map_res, splat_map ) * config->SandColor.w );
+            color = Lerp( color, config->SnowColor, terrain_splat_map->get_splat( x2, y2, 1, splat_map_res, splat_map ) * config->SnowColor.w );
+
+            float depth_factor = 0.f;
+            float shore_distance = terrain_texturing->get_coarse_vector_to_shore( vec2( x2, y2 ), shore_map_size, shore_vectors, shore_distance_scale ).second;
+
+            if ( shore_distance > 0.f ) {
+                depth_factor = 0.f - height;    
+
+                if ( depth_factor <= 0.f || !( ( terrain_topology_map->get_topology( x2, y2, 16.f, terrain_one_over_size, topology_map_res, topology_map ) & 0x180 ) != 0 ) ) {
+                    depth_factor = mathf::max( depth_factor, 0.1f * shore_distance );
+                }
+            }
+
+            if ( depth_factor > 0.f ) {
+                color = Lerp( color, config->WaterColor, mathf::clamp( 0.5f + depth_factor / 5.f, 0.f, 1.f ) );
+                color = Lerp( color, config->OffShoreColor, mathf::clamp( depth_factor / config->MaxDepth, 0.f, 1.f ) );
+            }
+
+            else {
+                static const vec4 half = vec4( 0.5f, 0.5f, 0.5f, 0.5f );
+
+                float diffuse = mathf::max( Dot( terrain_height_map->get_normal( x2, y2, height_map_res, height_map, height_map_norm_y ), config->SunDirection ), 0.f );
+
+                color = color + ( ( color * config->SunPower ) * ( diffuse - 0.5f ) );
+                color = ( color - half ) * config->Contrast + half;
+            }
+
+            color = color * config->Brightness;
+
+            int px = cx + config->OceanMargin;
+            int py = cy + config->OceanMargin;
+
+            uint8_t* data = ( uint8_t* )resource.pData + ( py * resource.RowPitch ) + ( px * 4 );
+
+            data[ 0 ] = NormalizedToByte( color.x );
+            data[ 1 ] = NormalizedToByte( color.y );
+            data[ 2 ] = NormalizedToByte( color.z );
+            data[ 3 ] = NormalizedToByte( 1.f );    
+        }
+    }
+
+    renderer.m_device_context->Unmap( texture, 0 );
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc {
+       .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+       .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+       .Texture2D = {
+           .MostDetailedMip = 0,
+           .MipLevels = texture_desc.MipLevels
+       }
+    };
+
+    if ( renderer.m_device->CreateShaderResourceView( texture, &srv_desc, &srv ) != S_OK )
+        goto cleanup;
+
+cleanup:
+    if ( shore_vectors ) {
+        delete[] shore_vectors;
+    }
+
+    if ( height_map ) {
+        delete[] height_map;
+    }
+
+    if ( splat_map ) {
+        delete[] splat_map;
+    }
+
+    if ( topology_map ) {
+        delete[] topology_map;
+    }
+
+    if ( texture ) {
+        texture->Release();
+    }
+
+    return srv;
+}
 
 #include "cache.h"
+#include "update.h"
+#include "render.h"
 
 int main() {
     if ( !dma.initialize() ) {
@@ -340,8 +341,20 @@ int main() {
 
         Sleep( 1000 );
     }
- 
-    cache_thread();
+
+    CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )cache_thread, NULL, 0, NULL );
+    CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )update_thread, NULL, 0, NULL );
+
+   /* auto a = DefaultConfig;
+    auto b = render( &a );
+
+    while ( true ) {
+        renderer.begin_frame();
+        renderer.draw_image( 100.f, 100.f, 600.f, 600.f, b );
+        renderer.end_frame();
+    }
+ */
+     render_thread();
 
     while ( true ) {
         Sleep( 1000 );
