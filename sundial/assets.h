@@ -8,12 +8,12 @@ enum locale : int {
     english,
     chinese,
     russian,
-    max
+    locale_max
 };
 
 struct localized_item {
     int m_item_id;
-    std::string m_translations[ locale::max ];
+    std::string m_translations[ locale::locale_max ];
     ID3D11ShaderResourceView* m_srv;
 };
 

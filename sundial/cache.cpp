@@ -281,8 +281,6 @@ void cache_players( scatter_request* scatter ) {
 		memcpy( player.m_bone_transforms, task->m_internal_bone_transforms, sizeof( player.m_bone_transforms ) );
 
 		msg->m_players.push_back( player );
-
-		LOG( "(%d) Pushed back %d\n", count, i );
 	}
 
 	update_bone_positions( msg->m_players, scatter );

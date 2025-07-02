@@ -194,7 +194,7 @@ void renderer_manager::end_frame() {
 
     ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );
 
-    m_swap_chain->Present( 0, 0 );
+    m_swap_chain->Present( 1, 0 );
 }
 
 void renderer_manager::draw_rect( float x, float y, float width, float height, float thickness, uint32_t color, float rounding ) {

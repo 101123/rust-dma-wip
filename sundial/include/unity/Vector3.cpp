@@ -178,7 +178,7 @@ Vector3f RotateTowards(const Vector3f& lhs, const Vector3f& rhs, float angleMove
     }
 }
 
-Vector3f Slerp(const Vector3f& lhs, const Vector3f& rhs, float t)
+Vector3f slerp(const Vector3f& lhs, const Vector3f& rhs, float t)
 {
     float lhsMag = Magnitude(lhs);
     float rhsMag = Magnitude(rhs);

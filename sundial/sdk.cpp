@@ -42,9 +42,9 @@ vec3 terrain_height_map::get_normal( float norm_x, float norm_z, int res, uint16
 	vec3 normal4 = this->get_normal( num6, num7, res, height_map, norm_y );
 	float num8 = num2 - ( float )num4;
 	float num9 = num3 - ( float )num5;
-	vec3 vector = Slerp( normal, normal2, num8 );
-	vec3 vector2 = Slerp( normal3, normal4, num8 );
-	return Normalize( Slerp( vector, vector2, num9 ) );
+	vec3 vector = slerp( normal, normal2, num8 );
+	vec3 vector2 = slerp( normal3, normal4, num8 );
+	return Normalize( slerp( vector, vector2, num9 ) );
 }
 
 vec3 terrain_height_map::get_normal( int x, int z, int res, uint16_t* height_map, float normY ) {

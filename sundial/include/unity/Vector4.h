@@ -60,4 +60,4 @@ inline bool CompareApproximately(const Vector4f& inV0, const Vector4f& inV1, con
     return SqrMagnitude(inV1 - inV0) <= inMaxDist * inMaxDist;
 }
 
-inline Vector4f Lerp(const Vector4f& from, const Vector4f& to, float t) { return to * t + from * (1.0F - t); }
+inline Vector4f lerp(const Vector4f& from, const Vector4f& to, float t) { return to * t + from * (1.0F - t); }

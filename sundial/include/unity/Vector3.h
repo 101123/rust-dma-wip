@@ -73,7 +73,7 @@ inline float Angle(const Vector3f& lhs, const Vector3f& rhs) { return ::acos(fmi
 inline Vector3f ReflectVector(const Vector3f& inDirection, const Vector3f& inNormal)   { return -2.0F * Dot(inNormal, inDirection) * inNormal + inDirection; }
 
 inline Vector3f Lerp(const Vector3f& from, const Vector3f& to, float t) { return to * t + from * (1.0F - t); }
-Vector3f Slerp(const Vector3f& from, const Vector3f& to, float t);
+Vector3f slerp(const Vector3f& from, const Vector3f& to, float t);
 
 // Returns a vector with the smaller of every component from v0 and v1
 inline Vector3f Min(const Vector3f& lhs, const Vector3f& rhs)          { return Vector3f(FloatMin(lhs.x, rhs.x), FloatMin(lhs.y, rhs.y), FloatMin(lhs.z, rhs.z)); }
@@ -105,7 +105,7 @@ Vector3f RotateTowards(const Vector3f& lhs, const Vector3f& rhs, float maxAngle,
 
 // Spherically interpolates the direction of two vectors
 // and interpolates the magnitude of the two vectors
-Vector3f Slerp(const Vector3f& lhs, const Vector3f& rhs, float t);
+Vector3f slerp( const Vector3f& lhs, const Vector3f& rhs, float t );
 
 /// Returns a Vector3 that moves lhs towards rhs by a maximum of clampedDistance
 Vector3f MoveTowards(const Vector3f& lhs, const Vector3f& rhs, float clampedDistance);

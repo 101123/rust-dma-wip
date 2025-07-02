@@ -213,14 +213,14 @@ ID3D11ShaderResourceView* render( MapImageConfig* config ) {
 
             vec4 color = config->StartColor;
 
-            color = Lerp( color, config->GravelColor, terrain_splat_map->get_splat( x2, y2, 7, splat_map_res, splat_map ) * config->GravelColor.w );
-            color = Lerp( color, config->PebbleColor, terrain_splat_map->get_splat( x2, y2, 6, splat_map_res, splat_map ) * config->PebbleColor.w );
-            color = Lerp( color, config->RockColor, terrain_splat_map->get_splat( x2, y2, 3, splat_map_res, splat_map ) * config->RockColor.w );
-            color = Lerp( color, config->DirtColor, terrain_splat_map->get_splat( x2, y2, 0, splat_map_res, splat_map ) * config->DirtColor.w );
-            color = Lerp( color, config->GrassColor, terrain_splat_map->get_splat( x2, y2, 4, splat_map_res, splat_map ) * config->GrassColor.w );
-            color = Lerp( color, config->ForestColor, terrain_splat_map->get_splat( x2, y2, 5, splat_map_res, splat_map ) * config->ForestColor.w );
-            color = Lerp( color, config->SandColor, terrain_splat_map->get_splat( x2, y2, 2, splat_map_res, splat_map ) * config->SandColor.w );
-            color = Lerp( color, config->SnowColor, terrain_splat_map->get_splat( x2, y2, 1, splat_map_res, splat_map ) * config->SnowColor.w );
+            color = lerp( color, config->GravelColor, terrain_splat_map->get_splat( x2, y2, 7, splat_map_res, splat_map ) * config->GravelColor.w );
+            color = lerp( color, config->PebbleColor, terrain_splat_map->get_splat( x2, y2, 6, splat_map_res, splat_map ) * config->PebbleColor.w );
+            color = lerp( color, config->RockColor, terrain_splat_map->get_splat( x2, y2, 3, splat_map_res, splat_map ) * config->RockColor.w );
+            color = lerp( color, config->DirtColor, terrain_splat_map->get_splat( x2, y2, 0, splat_map_res, splat_map ) * config->DirtColor.w );
+            color = lerp( color, config->GrassColor, terrain_splat_map->get_splat( x2, y2, 4, splat_map_res, splat_map ) * config->GrassColor.w );
+            color = lerp( color, config->ForestColor, terrain_splat_map->get_splat( x2, y2, 5, splat_map_res, splat_map ) * config->ForestColor.w );
+            color = lerp( color, config->SandColor, terrain_splat_map->get_splat( x2, y2, 2, splat_map_res, splat_map ) * config->SandColor.w );
+            color = lerp( color, config->SnowColor, terrain_splat_map->get_splat( x2, y2, 1, splat_map_res, splat_map ) * config->SnowColor.w );
 
             float depth_factor = 0.f;
             float shore_distance = terrain_texturing->get_coarse_vector_to_shore( vec2( x2, y2 ), shore_map_size, shore_vectors, shore_distance_scale ).second;
@@ -234,8 +234,8 @@ ID3D11ShaderResourceView* render( MapImageConfig* config ) {
             }
 
             if ( depth_factor > 0.f ) {
-                color = Lerp( color, config->WaterColor, mathf::clamp( 0.5f + depth_factor / 5.f, 0.f, 1.f ) );
-                color = Lerp( color, config->OffShoreColor, mathf::clamp( depth_factor / config->MaxDepth, 0.f, 1.f ) );
+                color = lerp( color, config->WaterColor, mathf::clamp( 0.5f + depth_factor / 5.f, 0.f, 1.f ) );
+                color = lerp( color, config->OffShoreColor, mathf::clamp( depth_factor / config->MaxDepth, 0.f, 1.f ) );
             }
 
             else {
