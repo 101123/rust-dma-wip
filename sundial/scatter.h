@@ -48,12 +48,6 @@ public:
 
         static_assert( sizeof( T ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
 
-       /* nigga nig;
-        nig.a = ( void* )address;
-        nig.b = ( void* )buffer;
-        nig.c = size;
-        m_nigga.push_back( nig );*/
-
         return dma.add_scatter_read( m_handle, ( uintptr_t )address, buffer, size );
     }
 
@@ -65,8 +59,8 @@ public:
         return add_read( ( uintptr_t )address, buffer, sizeof( A ) );
     }
 
-    template <typename Type, size_t Offset>
-    bool add_field( Field<Type, Offset>* field, Type* result ) {
+    template <typename Type, size_t Offset, void( *Decrypt )( uint32_t* ) = nullptr, void( *Encrypt )( uint32_t* ) = nullptr>
+    bool add_field( Field<Type, Offset, Decrypt, Encrypt>* field, Type* result ) {
         return add_read( field->address_of(), result );
     }
 

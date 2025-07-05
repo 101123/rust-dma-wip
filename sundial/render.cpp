@@ -103,17 +103,23 @@ void render_thread() {
         }
 
         if ( players_msg ) {
-            for ( player player : players_msg->m_players ) {
+            for ( cached_player player : players_msg->m_entities ) {
                 vec2 screen[ bone_count ];
                 bool success[ bone_count ];
                 for ( int i = 0; i < bone_count; i++ ) {
                     success[ i ] = engine.w2s( &player.m_bone_positions[ i ], &screen[ i ] );
                 }
 
+                float cam_dist = distance( player.m_bone_positions[ 0 ], engine.m_cam_pos );
+
                 bounds bounds;
-                if ( !get_bounds( &bounds, screen, success, bone_count, 100.f ) ) {
+                if ( !get_bounds( &bounds, screen, success, bone_count, cam_dist ) ) {
                     continue;
                 }
+
+
+                char buffer[ 64 ];
+                sprintf( buffer, "Scientist [%.2fm]", cam_dist );
 
                 for ( int j = 0; j < bone_count; j++ ) {
                     int a = bone_connections[ j ][ 0 ];
@@ -132,7 +138,7 @@ void render_thread() {
                 float half = ( bounds.right - bounds.left ) / 2.f;
 
 
-                renderer.draw_string_a( bounds.left + half, bounds.top - 14.f, fonts::verdana, 12.f, text_flags::centered | text_flags::drop_shadow, 0xFFFFFFFF, "Scientist" );
+                renderer.draw_string_a( bounds.left + half, bounds.top - 14.f, fonts::verdana, 12.f, text_flags::centered | text_flags::drop_shadow, 0xFF1111BB, buffer );
 
             }
         }

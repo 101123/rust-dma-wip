@@ -14,24 +14,25 @@ bool populated_classes = false;
 int populate_classes_tries = 0;
 
 struct class_lookup {
-    Il2CppClass** m_value;
+    il2cpp_class** m_value;
     void* m_static_fields;
     uint64_t m_type_definition_index;
 };
 
 struct parent_lookup {
-    Il2CppClass** m_start;
-    Il2CppClass** m_value;
+    il2cpp_class** m_start;
+    il2cpp_class** m_value;
     void* m_static_fields;
     int m_depth;
 };
 
 class_lookup class_lookups[] = {
-    { nullptr, &base_networkable::static_fields, BaseNetworkable_Static_TypeDefinitionIndex },
-    { nullptr, &terrain_meta::static_fields, TerrainMeta_TypeDefinitionIndex },
-    { nullptr, &world::static_fields, World_Static_TypeDefinitionIndex },
-    { nullptr, &main_camera::static_fields, MainCamera_TypeDefinitionIndex },
-    { nullptr, &base_player::static_fields, BasePlayer_Static_TypeDefinitionIndex }
+    { nullptr, &base_networkable::s_static_fields, BaseNetworkable_Static_TypeDefinitionIndex },
+    { nullptr, &terrain_meta::s_static_fields, TerrainMeta_TypeDefinitionIndex },
+    { nullptr, &world::s_static_fields, World_Static_TypeDefinitionIndex },
+    { nullptr, &main_camera::s_static_fields, MainCamera_TypeDefinitionIndex },
+    { nullptr, &base_player::s_static_fields, BasePlayer_Static_TypeDefinitionIndex },
+    { &base_player::s_klass, nullptr, BasePlayer_TypeDefinitionIndex }
 };
 
 parent_lookup parent_lookups[] = {
@@ -45,12 +46,12 @@ bool populate_classes() {
     if ( !type_info_definition_table_address )
         return false;
 
-    Il2CppClass** type_info_definition_table = read_memory<Il2CppClass**>( type_info_definition_table_address );
+    il2cpp_class** type_info_definition_table = read_memory<il2cpp_class**>( type_info_definition_table_address );
     if ( !type_info_definition_table )
         return false;
 
     for ( class_lookup& class_lookup : class_lookups ) {
-        Il2CppClass* klass = read_memory<Il2CppClass*>( &type_info_definition_table[ class_lookup.m_type_definition_index ] );
+        il2cpp_class* klass = read_memory<il2cpp_class*>( &type_info_definition_table[ class_lookup.m_type_definition_index ] );
         if ( !klass )
             return false;
 
@@ -112,6 +113,23 @@ MapImageConfig DefaultConfig = {
     .ImageSize = nullptr
 };
 
+FORCEINLINE uint32_t FloorfToIntPos( float f )
+{
+    return ( uint32_t )f;
+}
+
+FORCEINLINE uint32_t RoundfToIntPos( float f )
+{
+    return FloorfToIntPos( f + 0.5F );
+}
+
+FORCEINLINE int NormalizedToByte( float f )
+{
+    f = std::max( f, 0.f );
+    f = std::min( f, 1.f );
+    return RoundfToIntPos( f * 255.f );
+}
+
 ID3D11ShaderResourceView* render( MapImageConfig* config ) {
     // Initialize these variables here in order to utilize gotos to avoid repeated code
     ID3D11ShaderResourceView* srv = nullptr;
@@ -120,7 +138,7 @@ ID3D11ShaderResourceView* render( MapImageConfig* config ) {
     auto start = GetTickCount64();
     LOG( "Reading all data!\n" );
 
-    auto static_fields = terrain_meta::static_fields;
+    auto static_fields = terrain_meta::s_static_fields;
     if ( !static_fields )
         return nullptr;
 
@@ -166,7 +184,7 @@ ID3D11ShaderResourceView* render( MapImageConfig* config ) {
     if ( !topology_map || !topology_map_count ) 
         goto cleanup;
 
-    int map_res = ( int )( world::static_fields->size * mathf::clamp( config->Scale, 0.1f, 4.f ) );
+    int map_res = ( int )( world::s_static_fields->size * mathf::clamp( config->Scale, 0.1f, 4.f ) );
     float inv_map_res = 1.f / ( float )map_res;
 
     auto time = GetTickCount64() - start;
@@ -241,7 +259,7 @@ ID3D11ShaderResourceView* render( MapImageConfig* config ) {
             else {
                 static const vec4 half = vec4( 0.5f, 0.5f, 0.5f, 0.5f );
 
-                float diffuse = mathf::max( Dot( terrain_height_map->get_normal( x2, y2, height_map_res, height_map, height_map_norm_y ), config->SunDirection ), 0.f );
+                float diffuse = mathf::max( dot( terrain_height_map->get_normal( x2, y2, height_map_res, height_map, height_map_norm_y ), config->SunDirection ), 0.f );
 
                 color = color + ( ( color * config->SunPower ) * ( diffuse - 0.5f ) );
                 color = ( color - half ) * config->Contrast + half;
@@ -304,14 +322,22 @@ cleanup:
 #include "render.h"
 
 int main() {
+    LOG( "initializing dma\n" );
     if ( !dma.initialize() ) {
         LOG( "failed to initialize dma!\n" );
         return 1;
     }
 
+    LOG( "initializing renderer\n" );
     if ( !renderer.initialize() ) {
         LOG( "failed to initialize renderer!\n" );
         return 2;
+    }
+
+    LOG( "loading assets\n" );
+    if ( !assets.load( "D:\\Repositories\\sundial\\sundial-assets\\assets.bin" ) ) {
+        LOG( "failed to load assets!\n" );
+        return 3;
     }
 
     uint32_t process_id = dma.get_process_id( "RustClient.exe" );
@@ -343,9 +369,9 @@ int main() {
     }
 
     CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )cache_thread, NULL, 0, NULL );
-    CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )update_thread, NULL, 0, NULL );
+    //CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )update_thread, NULL, 0, NULL );
 
-   /* auto a = DefaultConfig;
+    /*auto a = DefaultConfig;
     auto b = render( &a );
 
     while ( true ) {
@@ -354,7 +380,7 @@ int main() {
         renderer.end_frame();
     }
  */
-     render_thread();
+    // render_thread();
 
     while ( true ) {
         Sleep( 1000 );

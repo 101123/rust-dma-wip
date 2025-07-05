@@ -131,7 +131,7 @@ void dma_manager::free_scatter_request( void* scatter_handle ) {
 
 bool dma_manager::clear_scatter_request( void* scatter_handle ) {
 #ifdef DMA
-    return VMMDLL_Scatter_Clear( scatter_handle, m_pid, VMMDLL_FLAG_NOCACHE |VMMDLL_FLAG_SCATTER_PREPAREEX_NOMEMZERO );
+    return VMMDLL_Scatter_Clear( scatter_handle, m_pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_SCATTER_PREPAREEX_NOMEMZERO );
 #else
     return true;
 #endif

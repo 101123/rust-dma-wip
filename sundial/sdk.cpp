@@ -44,7 +44,7 @@ vec3 terrain_height_map::get_normal( float norm_x, float norm_z, int res, uint16
 	float num9 = num3 - ( float )num5;
 	vec3 vector = slerp( normal, normal2, num8 );
 	vec3 vector2 = slerp( normal3, normal4, num8 );
-	return Normalize( slerp( vector, vector2, num9 ) );
+	return normalize( slerp( vector, vector2, num9 ) );
 }
 
 vec3 terrain_height_map::get_normal( int x, int z, int res, uint16_t* height_map, float normY ) {
@@ -55,7 +55,7 @@ vec3 terrain_height_map::get_normal( int x, int z, int res, uint16_t* height_map
 	int num5 = mathf::clamp( z + 1, 0, num );
 	float num6 = ( this->get_height_01( num4, num3, res, height_map ) - this->get_height_01( num2, num3, res, height_map ) ) * 0.5f;
 	float num7 = ( this->get_height_01( num2, num5, res, height_map ) - this->get_height_01( num2, num3, res, height_map ) ) * 0.5f;
-	return Normalize( vec3( -num6, normY, -num7 ) );
+	return normalize( vec3( -num6, normY, -num7 ) );
 }
 
 float terrain_splat_map::get_splat( float norm_x, float norm_z, int mask, int res, uint8_t* splat_map ) {

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "sdk.h"
+#include "assets.h"
 
+#undef max
 #include <spsc-queue.hpp>
 
 enum bones {
@@ -41,7 +43,22 @@ inline int skeleton_bones[] = {
 
 #define bone_count _countof( skeleton_bones )
 
-struct player {
+struct cached_belt_item {
+	bool m_present;
+	bool m_active;
+	localized_item* m_localized_item;
+	int m_amount;
+};
+
+struct cached_player {
+	bool m_destroyed;
+	bool m_initial_update;
+	int m_player_flags;
+	base_player* m_entity;
+	uint64_t m_user_id;
+	uint64_t m_team_id;
+	sys::string m_name;
+	cached_belt_item m_belt_items[ 6 ];
 	unity::transform* m_bone_transforms[ bone_count ];
 	vec3 m_bone_positions[ bone_count ];
 };
@@ -60,8 +77,11 @@ struct entities : message {
 };
 
 struct players : message {
-	fast_vector<player> m_players;
-	fast_vector<player> m_scientists;
+	players() {
+		m_type = message_type::players;
+	}
+
+	fast_vector<cached_player> m_entities;
 };
 
 inline dro::SPSCQueue<message*, 16> render_queue;

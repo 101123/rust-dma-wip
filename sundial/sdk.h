@@ -4,41 +4,49 @@
 #include "offsets_manual.h"
 #include "scatter.h"    
 
-#include <unity/Vector2.h>
-#include <unity/Vector3.h>
-#include <unity/Vector4.h>
-#include <unity/Matrix4x4.h>
+#include <math/vec2.h>
+#include <math/vec3.h>
+#include <math/vec4.h>
+#include <math/mat3x3.h>
+#include <math/mat4x4.h>
 
-using vec2 = Vector2f;
-using vec3 = Vector3f;
-using vec4 = Vector4f;
-using mat4x4 = Matrix4x4f;
-
-class Il2CppClass;
 class terrain_height_map;
 class terrain_splat_map;
 class terrain_topology_map;
 class terrain_texturing;
 class terrain_meta;
 
-class Il2CppClass {
+class il2cpp_class {
 public:
     FIELD( uintptr_t, static_fields, Offsets::Il2CppClass::static_fields );
 };
 
-template <typename T, void( *DecryptHandle )( uint32_t* )>
-class HiddenValue {
+class il2cpp_object {
 public:
-    [[msvc::no_unique_address]] Field<uintptr_t, Offsets::HiddenValue::_handle, DecryptHandle> _handle;
+    FIELD( il2cpp_class*, klass, Offsets::Il2CppObject::klass );
+};
+
+template <typename T, void( *DecryptHandle )( uint32_t* )>
+class hidden_value {
+public:
+    [[msvc::no_unique_address]] Field<uint32_t, Offsets::HiddenValue::_handle, DecryptHandle> _handle;
 };
 
 #define HIDDEN_VALUE( Type, Name, Offset, DecryptHandle ) \
-    static void _Decrypt##Name( uint32_t* values ) { for ( size_t i = 0; i < ( sizeof( uintptr_t ) / sizeof( uint32_t ) ); i++ ) { DecryptHandle } }; \
-    [[msvc::no_unique_address]] Field<HiddenValue<Type, _Decrypt##Name>*, Offset> Name
+    static void decrypt_##Name##_handle( uint32_t* values ) { for ( size_t i = 0; i < ( sizeof( uint32_t ) / sizeof( uint32_t ) ); i++ ) { DecryptHandle } }; \
+    [[msvc::no_unique_address]] Field<hidden_value<Type, decrypt_##Name##_handle>*, Offset> Name
 
 class base_player;
 
 namespace sys {
+    class string {
+    private:
+        uint8_t _[ 0x10 ];
+    public:
+        int strlen;
+        wchar_t str[ 128 + 1 ];
+    };
+
     template <typename T>
     class array {
     private:
@@ -51,6 +59,10 @@ namespace sys {
             T* items = buffer ? ( T* )buffer : new T[ count ];
             read_memory( this->buffer, items, count * sizeof( T ) );
             return items;
+        }
+
+        bool read_all( int count, void* buffer, scatter_request* scatter ) {
+            return scatter->add_read( this->buffer, buffer, count * sizeof( T ) );
         }
     };
 
@@ -234,7 +246,7 @@ namespace unity {
 
 
 template <typename T = uintptr_t>
-class object {
+class object : public il2cpp_object {
 public:
     FIELD( T, cached_ptr, Offsets::Object::m_CachedPtr );
 };
@@ -243,15 +255,19 @@ class transform : public object<unity::transform*> {
 
 };
 
-class base_networkable {
+class component : public object<uintptr_t> {
+
+};
+
+class base_networkable : public component {
 public:
     class entity_realm {
     public:
         typedef sys::list_dictionary<uint64_t, base_networkable*>* Type;
         HIDDEN_VALUE( Type, entity_list, Offsets::BaseNetworkable_EntityRealm::entityList,
             {
-                values[ i ] = ( ( ( values[ i ] << 22 ) |
-                    ( values[ i ] >> 10 ) ) - 1225147140 ) ^ 0xFA11D865;
+                values[ i ] = ( ( ( ( values[ i ] << 17 ) | ( values[ i ] >> 15 ) ) + 1113995468 ) << 8 ) |
+                    ( ( ( ( values[ i ] << 17 ) | ( values[ i ] >> 15 ) ) + 1113995468 ) >> 24 );
             }
         );
     };
@@ -260,13 +276,13 @@ public:
     public:
         HIDDEN_VALUE( entity_realm*, client_entities, Offsets::BaseNetworkable_Static::clientEntities,
             {
-                values[ i ] = ( ( ( values[ i ] - 2068828434 ) << 13 ) |
-                    ( ( unsigned int )( values[ i ] - 2068828434 ) >> 19 ) ) - 789718271;
+                values[ i ] = ( ( ( ( values[ i ] ^ 0x304644AB ) - 2086859488 ) << 28 ) |
+                    ( ( ( values[ i ] ^ 0x304644ABu ) - 2086859488 ) >> 4 ) ) ^ 0x7DDF2392;
             }
         );
     };
 
-    static inline static_fields* static_fields;
+    static inline static_fields* s_static_fields;
 };
 
 
@@ -278,7 +294,8 @@ public:
 };
 
 
-class base_entity {
+
+class base_entity : public base_networkable {
 public:
     FIELD( model*, model, Offsets::BaseEntity::model );
     FIELD( int, flags, Offsets::BaseEntity::flags );
@@ -320,6 +337,52 @@ public:
 
 };
 
+class model_state {
+public:
+
+};
+
+class player_eyes {
+public:
+
+};
+
+class item_definition {
+public:
+    FIELD( int, item_id, Offsets::ItemDefinition::itemid );
+};
+
+class item {
+public:
+    FIELD( float, condition, Offsets::Item::_condition );
+    FIELD( float, max_condition, Offsets::Item::_maxCondition );
+    FIELD( item_definition*, info, Offsets::Item::info );
+    FIELD( uint64_t, uid, Offsets::Item::uid );
+    FIELD( int, amount, Offsets::Item::amount );
+    FIELD( int, position, Offsets::Item::position );
+    //FIELD( item_container*, contents, Offsets::Item::contents );
+    FIELD( base_entity*, world_entity, Offsets::Item::worldEnt );
+    FIELD( base_entity*, held_entity, Offsets::Item::heldEntity );
+};
+
+class item_container {
+public:
+    FIELD( uint64_t, uid, Offsets::ItemContainer::uid );
+    FIELD( sys::list<item*>*, item_list, Offsets::ItemContainer::itemList );
+};
+
+class player_loot {
+    FIELD( sys::list<item_container*>*, containers, Offsets::PlayerLoot::containers );
+};
+
+class player_inventory {
+public:
+    FIELD( item_container*, container_main, Offsets::PlayerInventory::containerMain );
+    FIELD( item_container*, container_belt, Offsets::PlayerInventory::containerBelt );
+    FIELD( item_container*, container_wear, Offsets::PlayerInventory::containerWear );
+    FIELD( player_loot*, loot, Offsets::PlayerInventory::loot );
+};
+
 class base_player : public base_combat_entity {
 public:
     class static_fields {
@@ -327,8 +390,8 @@ public:
         typedef sys::list_dictionary<uint64_t, base_player*>* Type;
         HIDDEN_VALUE( Type, visible_player_list, Offsets::BasePlayer_Static::visiblePlayerList,
             {
-                values[ i ] = ( ( ( values[ i ] - 2068828434 ) << 13 ) |
-                    ( ( unsigned int )( values[ i ] - 2068828434 ) >> 19 ) ) - 789718271;
+                values[ i ] = ( ( ( ( values[ i ] ^ 0x304644AB ) - 2086859488 ) << 28 ) |
+                    ( ( ( values[ i ] ^ 0x304644ABu ) - 2086859488 ) >> 4 ) ) ^ 0x7DDF2392;
             }
         );
     };
@@ -338,7 +401,43 @@ public:
     FIELD( player_walk_movement*, movement, Offsets::BasePlayer::movement );
     FIELD( uint64_t, current_team, Offsets::BasePlayer::currentTeam );
 
-    inline static static_fields* static_fields;
+    ENCRYPTED_VALUE( uint64_t, active_item, Offsets::BasePlayer::clActiveItem,
+        {
+            values[ i ] = ( ( ( ( values[ i ] << 29 ) | ( values[ i ] >> 3 ) ) ^ 0x2BC1D24A ) << 20 ) |
+                ( ( ( ( values[ i ] << 29 ) | ( values[ i ] >> 3 ) ) ^ 0x2BC1D24A ) >> 12 );
+        }, {}
+    );
+
+    FIELD( model_state*, model_state, Offsets::BasePlayer::modelState );
+    FIELD( int, player_flags, Offsets::BasePlayer::playerFlags );
+
+    HIDDEN_VALUE( player_eyes*, eyes, Offsets::BasePlayer::eyes,
+        {
+            values[ i ] = ( ( ( ( values[ i ] << 19 ) | ( values[ i ] >> 13 ) ) ^ 0x9D632EE3 ) << 19 ) |
+                ( ( ( ( values[ i ] << 19 ) | ( values[ i ] >> 13 ) ) ^ 0x9D632EE3 ) >> 13 );
+        }
+    );
+
+    ENCRYPTED_VALUE( uint64_t, user_id, Offsets::BasePlayer::userID,
+        {
+            uint32_t a = ( ( ( values[ i ] + 806781542 ) << 16 ) |
+                ( ( unsigned int )( values[ i ] + 806781542 ) >> 16 ) ) - 2116548939;
+
+            values[ i ] = ( a << 24 ) | ( a >> 8 );
+        }, {}
+    );
+
+    HIDDEN_VALUE( player_inventory*, inventory, Offsets::BasePlayer::inventory,
+        {
+            values[ i ] = ( ( ( ( values[ i ] << 24 ) | ( values[ i ] >> 8 ) ) + 1923130967 ) << 27 ) |
+                ( ( ( ( values[ i ] << 24 ) | ( values[ i ] >> 8 ) ) + 1923130967 ) >> 5 );
+        }
+    );
+
+    FIELD( sys::string*, display_name, Offsets::BasePlayer::_displayName );
+
+    static inline il2cpp_class* s_klass;
+    static inline static_fields* s_static_fields;
 };
 
 
@@ -359,7 +458,7 @@ public:
         FIELD( camera*, main_camera, Offsets::MainCamera::mainCamera );
     };
 
-    inline static static_fields* static_fields;
+    static inline static_fields* s_static_fields;
 };
 
 
@@ -372,7 +471,7 @@ public:
         FIELD( int, size, Offsets::World_Static::_size );
     };
 
-    inline static static_fields* static_fields;
+    static inline static_fields* s_static_fields;
 };
 
 #define BYTE_TO_FLOAT( b ) ( float )b * 0.003921569f
@@ -483,5 +582,5 @@ public:
         FIELD( terrain_texturing*, texturing, Offsets::TerrainMeta::Texturing );
     };
 
-    static inline static_fields* static_fields;
+    static inline static_fields* s_static_fields;
 };

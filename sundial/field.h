@@ -42,6 +42,6 @@ public:
 #define FIELD( Type, Name, Offset ) [[msvc::no_unique_address]] Field<Type, Offset> Name
 
 #define ENCRYPTED_VALUE( Type, Name, Offset, Decrypt, Encrypt ) \
-    static void _Decrypt##Name( uint32_t* values ) { for ( size_t i = 0; i < ( sizeof( Type ) / sizeof( uint32_t ) ); i++ ) { Decrypt } }; \
-    static void _Encrypt##Name( uint32_t* values ) { for ( size_t i = 0; i < ( sizeof( Type ) / sizeof( uint32_t ) ); i++ ) { Encrypt } }; \
-    [[msvc::no_unique_address]] Field<Type, Offset, _Decrypt##Name, _Encrypt##Name> Name
+    static void decrypt_##Name( uint32_t* values ) { for ( size_t i = 0; i < ( sizeof( Type ) / sizeof( uint32_t ) ); i++ ) { Decrypt } }; \
+    static void encrypt_##Name( uint32_t* values ) { for ( size_t i = 0; i < ( sizeof( Type ) / sizeof( uint32_t ) ); i++ ) { Encrypt } }; \
+    [[msvc::no_unique_address]] Field<Type, Offset, decrypt_##Name, encrypt_##Name> Name

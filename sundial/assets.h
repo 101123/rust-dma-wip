@@ -4,16 +4,16 @@
 #include <string>
 #include <d3d11.h>
 
-enum locale : int {
-    english,
-    chinese,
-    russian,
+enum locale_type {
+    locale_english,
+    locale_chinese,
+    locale_russian,
     locale_max
 };
 
 struct localized_item {
     int m_item_id;
-    std::string m_translations[ locale::locale_max ];
+    std::string m_translations[ locale_type::locale_max ];
     ID3D11ShaderResourceView* m_srv;
 };
 
