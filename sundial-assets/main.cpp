@@ -1,7 +1,14 @@
+#include <json.hpp>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include <stb_image_resize2.h>
+
 #include <filesystem>
 #include <fstream>
 #include <unordered_map>
-#include <json.hpp>
 
 const char* localizations[] = {
 	"localization/zh-cn.json",
@@ -13,7 +20,8 @@ struct item {
 	std::string token;
 	std::string english;
 	std::string translated[ _countof( localizations ) ];
-	std::vector<uint8_t> image;
+	uint8_t* image_data;
+	int image_size;
 };
 
 std::vector<item> items;
@@ -149,16 +157,34 @@ int main( int argc, char* argv[] ) {
 				continue;
 			}
 
+			int image_width = 0, image_height = 0;
+			unsigned char* image_pixel_data = stbi_load_from_memory( image_data.data(), image_data.size(), &image_width, &image_height, nullptr, 4);
+			if ( !image_pixel_data ) {
+				printf( "[!] failed to load %ws from memory\n", image_path.filename().c_str() );
+				stream.close();
+				continue;
+			}
+
+			const int resized_width = 128, resized_height = 128;
+			uint8_t* resized_image = stbir_resize_uint8_srgb( image_pixel_data, image_width, image_height, 0, nullptr, resized_width, resized_height, 0, stbir_pixel_layout::STBIR_RGBA );
+			if ( !resized_image ) {
+				printf( "[!] failed to resize %ws\n", image_path.filename().c_str() );
+				stream.close();
+				continue;
+			}
+
 			items.push_back( {
 				.item_id = item_id,
 				.token = it->second,
 				.english = json[ "Name" ],
 				.translated = {},
-				.image = image_data,
+				.image_data = resized_image,
+				.image_size = resized_width * resized_height * 4
 			} );
 
 			stream.close();
 			image_stream.close();
+			stbi_image_free( image_pixel_data );
 		}
 	}
 
@@ -204,8 +230,10 @@ int main( int argc, char* argv[] ) {
 			stream.write( translated );
 		}
 
-		stream.write( item.image.size() );
-		stream.write( ( void* )item.image.data(), item.image.size() );
+		stream.write( item.image_size );
+		stream.write( item.image_data, item.image_size );
+
+		free( item.image_data );
 	}
 
 	int padded_size = ( stream.data().size() + 3 ) & ~3;

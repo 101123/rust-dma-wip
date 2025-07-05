@@ -148,6 +148,8 @@
   <ItemGroup>
     <ClInclude Include="include\json.hpp" />
     <ClInclude Include="include\pocketlzma.hpp" />
+    <ClInclude Include="include\stb_image.h" />
+    <ClInclude Include="include\stb_image_resize2.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\item_id_to_token.json" />
