@@ -4,10 +4,16 @@
 #include "sdk.h"
 #include "shared.h"
 #include "engine.h"
+#include "config.h"
 
 util::fifo_queue<players*, 32> free_queue;
 
 players* players_msg;
+
+cached_player* target_player = nullptr;
+float target_distance;
+
+vec2 screen_center;
 
 int bone_connections[][ 2 ] = {
     { 1, 0 }, { 0, 3 }, { 3, 2 },
@@ -77,9 +83,183 @@ bool get_bounds( bounds* bounds, vec2* screen, bool* success, int count, float d
     return true;
 }
 
+struct VisualWeaponInfo {
+    int itemid;
+    char letter;
+    const char* shortname;
+};
+
+VisualWeaponInfo VisualWeapons[] = {
+    { -206957888, 104, ( "M2" ) },
+    { 1545779598, 112, ( "AK" ) },
+    { -1335497659, 112, ( "AK" ) },
+    { -139037392, 112, ( "AK" ) },
+    { -1812555177, 106, ( "LR" ) },
+    { 1588298435, 111, ( "Bolt" ) },
+    { 28201841, 105, ( "M39" ) },
+    { -778367295, 107, ( "L96" )},
+    { -904863145, 98, ( "AR" )},
+    { 1796682209, 109, ( "Cutom" )},
+    { 1318558775, 103, ( "MP5" )},
+    { -1758372725, 97, ( "Thompon" )},
+    { -765183617, 114, ( "DB" ) },
+    { -41440462, -1, ( "pa" ) },
+    { 795371088, 102, ( "Pump" ) },
+    { -1367281941, 113, ( "Waterpipe" ) },
+    { -75944661, 108, ( "Eoka" ) },
+    { 649912614, 100, ( "Revolver" ) },
+    { -852563019, -1, ( "M92" ) },
+    { 818877484, 99, ( "AP" )},
+    { 1373971859, 101, ( "Python" ) },
+    { 1953903201, -1, ( "Nailgun" ) },
+    { 1965232394, 110, ( "Crobow" )},
+    { 1443579727, 116, ( "Bow" )},
+    { 884424049, -1, ( "Compound Bow" ) }
+};
+
+void draw_players( fast_vector<cached_player>& players ) {
+    for ( cached_player& player : players ) {
+        if ( player.m_destroyed )
+            continue;
+
+        player_visuals* visuals = player.m_klass == base_player::s_klass ? &cvar_players : &cvar_scientists;
+
+        bool wounded = player.m_player_flags & player_flags::wounded;
+        if ( wounded && !cvar_wounded.m_enabled )
+            continue;
+
+        bool sleeping = player.m_player_flags & player_flags::sleeping;
+        if ( sleeping && !cvar_sleeper.m_enabled )
+            continue;
+
+        float maximum_distance = visuals->m_maximum_distance;
+        if ( player.m_klass == base_player::s_klass ) {
+            if ( wounded ) {
+                maximum_distance = cvar_wounded.m_maximum_distance;
+            }
+
+            else if ( sleeping ) {
+                maximum_distance = cvar_sleeper.m_maximum_distance;
+            }
+        }
+
+        float camera_distance = distance( engine.m_camera_position, player.m_bone_positions[ bone_count - 1 ] );
+        if ( camera_distance > maximum_distance )
+            continue;
+
+        vec2 screen[ bone_count ];
+        bool success[ bone_count ];
+        for ( int i = 0; i < bone_count; i++ ) {
+            success[ i ] = engine.w2s( &player.m_bone_positions[ i ], &screen[ i ] );
+        }
+
+        bounds bounds;
+        if ( !get_bounds( &bounds, screen, success, bone_count, camera_distance ) ) {
+            continue;
+        }
+
+        float screen_distance = distance( screen_center, screen[ 1 ] );
+        if ( screen_distance < target_distance ) {
+            target_distance = screen_distance;
+            target_player = &player;
+        }
+
+        float half = ( bounds.right - bounds.left ) / 2.f;
+
+        if ( visuals->m_box ) {
+            uint32_t color = visuals->m_box_color;
+
+            renderer.draw_rect( bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top, 3.f, col32( 0, 0, 0, 48 ) );
+            renderer.draw_rect( bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top, 1.f, color );
+        }
+
+        if ( visuals->m_skeleton ) {
+            uint32_t color = visuals->m_skeleton_color;
+
+            for ( int j = 0; j < _countof( bone_connections ); j++ ) {
+                int a_idx = bone_connections[ j ][ 0 ];
+                int b_idx = bone_connections[ j ][ 1 ];
+                if ( !success[ a_idx ] || !success[ b_idx ] )
+                    continue;
+
+                vec2* a_pos = &screen[ a_idx ];
+                vec2* b_pos = &screen[ b_idx ];
+                renderer.draw_line( a_pos->x, a_pos->y, b_pos->x, b_pos->y, 1.15f, color );
+            }
+        }
+
+        if ( visuals->m_name ) {
+            uint32_t color = visuals->m_name_color;
+
+            renderer.draw_string_w( bounds.left + half, bounds.top - 14.f,
+                fonts::verdana, 12.f, text_flags::centered | text_flags::drop_shadow, color, player.m_name.str );
+        }
+
+        localized_item* held_item = nullptr;
+        for ( int i = 0; i < 6; i++ ) {
+            if ( player.m_belt_items[ i ].m_active ) {
+                held_item = player.m_belt_items[ i ].m_localized_item;
+            }
+        }
+
+        if ( held_item ) {
+            for ( auto& wep : VisualWeapons ) {
+                if ( wep.itemid == held_item->m_item_id ) {
+
+                    char buf[ 2 ] = {};
+                    buf[ 0 ] = wep.letter;
+
+                    renderer.draw_string_a( bounds.left + half, bounds.bottom - 8.f,
+                        fonts::icon, 30.f, text_flags::centered | text_flags::drop_shadow, visuals->m_name_color, buf );
+
+                    break;
+                }
+            }
+        }
+    }
+}
+
+bool menu_open = false;
+
+bool color_picker( const char* label, uint32_t* color ) {
+    float color_as_float[ 4 ];
+    color_as_float[ 0 ] = ( float )( ( *color >> 0 ) & 0xFF ) / 255.f;
+    color_as_float[ 1 ] = ( float )( ( *color >> 8 ) & 0xFF ) / 255.f;
+    color_as_float[ 2 ] = ( float )( ( *color >> 16 ) & 0xFF ) / 255.f;
+    color_as_float[ 3 ] = ( float )( ( *color >> 24 ) & 0xFF ) / 255.f;
+
+    bool result = ImGui::ColorEdit4( label, color_as_float, ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoInputs |
+        ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoTooltip );
+
+    *color = ( ( uint32_t )( color_as_float[ 0 ] * 255.f ) ) |
+        ( ( uint32_t )( color_as_float[ 1 ] * 255.f ) << 8 ) |
+        ( ( uint32_t )( color_as_float[ 2 ] * 255.f ) << 16 ) |
+        ( ( uint32_t )( color_as_float[ 3 ] * 255.f ) << 24 );
+
+    return result;
+}
+
+void combo( const char* name, int* value, std::initializer_list<const char*> options ) {
+    if ( ImGui::BeginCombo( name, options.begin()[ *value ] ) ) {
+        for ( int i = 0; i < options.size(); i++ ) {
+            bool selected = false;
+            if ( ImGui::Selectable( options.begin()[ i ], &selected ) ) {
+                *value = i;
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+}
+
 void render_thread() {
+    screen_center = vec2(
+        0.f + ( ( float )renderer.m_screen_size.x / 2.f ),
+        0.f + ( ( float )renderer.m_screen_size.y / 2.f )
+    );
+
     while ( true ) {
-        renderer.begin_frame();
+        renderer.begin_frame( menu_open );
 
         message* msg = nullptr;
         while ( render_queue.try_pop( msg ) ) {
@@ -100,65 +280,77 @@ void render_thread() {
             }
         }
 
+        if ( GetAsyncKeyState( VK_END ) & 0x1 ) {
+            menu_open = !menu_open;
+        }
+
+        if ( menu_open ) {
+            ImGui::Begin( "Cheat" );
+
+            if ( ImGui::BeginTabBar( "VisualsTabBar" ) ) {
+                if ( ImGui::BeginTabItem( "Players" ) ) {
+                    ImGui::Checkbox( "Enabled", &cvar_players.m_enabled );
+                    ImGui::Checkbox( "Box", &cvar_players.m_box ); ImGui::SameLine();
+                    color_picker( "Box Color", &cvar_players.m_box_color );
+                    ImGui::Checkbox( "Skeleton", &cvar_players.m_skeleton ); ImGui::SameLine();
+                    color_picker( "Skeleton Color", &cvar_players.m_skeleton_color );
+                    ImGui::Checkbox( "Name", &cvar_players.m_name ); ImGui::SameLine();
+                    color_picker( "Name Color", &cvar_players.m_name_color );
+                    ImGui::Checkbox( "Distance", &cvar_players.m_distance ); ImGui::SameLine();
+                    color_picker( "Distance Color", &cvar_players.m_distance_color );
+                    ImGui::Checkbox( "Held Item", &cvar_players.m_held_item ); ImGui::SameLine();
+                    color_picker( "Held Item Color", &cvar_players.m_held_item_color );
+                    combo( "Held Item Type", &cvar_players.m_held_item_type, { "Text", "Icon" } );
+                    ImGui::Checkbox( "Belt", &cvar_players.m_belt );
+                    combo( "Belt Type", &cvar_players.m_belt_type, { "Single", "Multi" } );
+
+                    ImGui::SliderInt( "Maximum Distance", &cvar_players.m_maximum_distance, 0, 500, "%dm" );
+
+                    ImGui::EndTabItem();
+                }
+
+                if ( ImGui::BeginTabItem( "Scientists" ) ) {
+                    ImGui::Checkbox( "Enabled", &cvar_scientists.m_enabled );
+                    ImGui::Checkbox( "Box", &cvar_scientists.m_box ); ImGui::SameLine();
+                    color_picker( "Box Color", &cvar_scientists.m_box_color );
+                    ImGui::Checkbox( "Skeleton", &cvar_scientists.m_skeleton ); ImGui::SameLine();
+                    color_picker( "Skeleton Color", &cvar_scientists.m_skeleton_color );
+                    ImGui::Checkbox( "Name", &cvar_scientists.m_name ); ImGui::SameLine();
+                    color_picker( "Name Color", &cvar_scientists.m_name_color );
+                    ImGui::Checkbox( "Distance", &cvar_scientists.m_distance ); ImGui::SameLine();
+                    color_picker( "Distance Color", &cvar_scientists.m_distance_color );
+                    ImGui::Checkbox( "Held Item", &cvar_scientists.m_held_item ); ImGui::SameLine();
+                    color_picker( "Held Item Color", &cvar_scientists.m_held_item_color );
+                    combo( "Held Item Type", &cvar_scientists.m_held_item_type, { "Text", "Icon" } );
+                    ImGui::Checkbox( "Belt", &cvar_scientists.m_belt );
+                    combo( "Belt Type", &cvar_scientists.m_belt_type, { "Single", "Multi" } );
+
+                    ImGui::SliderInt( "Belt FOV", &cvar_scientists.m_belt_fov, 0, 500, "%dpx" );
+                    ImGui::SliderInt( "Maximum Distance", &cvar_scientists.m_maximum_distance, 0, 500, "%dm" );
+
+                    ImGui::EndTabItem();
+                }
+
+                ImGui::EndTabBar();
+            }
+
+            ImGui::End();
+        }
+
         if ( players_msg ) {
-            for ( cached_player& player : players_msg->m_entities ) {
-                vec2 screen[ bone_count ];
-                bool success[ bone_count ];
-                for ( int i = 0; i < bone_count; i++ ) {
-                    success[ i ] = engine.w2s( &player.m_bone_positions[ i ], &screen[ i ] );
+            target_player = nullptr;
+            target_distance = FLT_MAX;
+
+            draw_players( players_msg->m_entities );         
+
+            if ( target_player ) {
+                if ( target_player->m_klass == base_player::s_klass ) {
+
                 }
 
-                float cam_dist = distance( player.m_bone_positions[ 0 ], engine.m_camera_position );
+                else {
 
-                bounds bounds;
-                if ( !get_bounds( &bounds, screen, success, bone_count, cam_dist ) ) {
-                    continue;
                 }
-
-
-                char buffer[ 128 ];
-                sprintf( buffer, "%ws %dm", player.m_name.str, ( int )cam_dist );
-
-                for ( int j = 0; j < bone_count; j++ ) {
-                    int a = bone_connections[ j ][ 0 ];
-                    int b = bone_connections[ j ][ 1 ];
-                    if ( !success[ a ] || !success[ b ] )
-                        continue;
-
-                    vec2* a_pos = &screen[ a ];
-                    vec2* b_pos = &screen[ b ];
-                    renderer.draw_line( a_pos->x, a_pos->y, b_pos->x, b_pos->y, 1.15f, 0xFFFFFFFF );
-                }
-
-                float half = ( bounds.right - bounds.left ) / 2.f;
-
-                int present_items = 0;
-
-                for ( int k = 0; k < 6; k++ ) {
-                    cached_belt_item& belt_item = player.m_belt_items[ k ];
-                    if ( !belt_item.m_present )
-                        continue;
-
-                    present_items++;
-                }
-
-                float left = bounds.left + half - ( ( present_items / 2 ) * 32.f );
-
-                for ( int k = 0; k < 6; k++ ) {
-                    cached_belt_item& belt_item = player.m_belt_items[ k ];
-                    if ( !belt_item.m_present )
-                        continue;
-
-                    renderer.draw_filled_rect( left + ( k * 32.f ), bounds.top - 46.f, 32.f, 32.f, IM_COL32( 0, 0, 0, 100 ) );
-                    renderer.draw_image( left + ( k * 32.f ), bounds.top - 46.f, 32.f, 32.f, belt_item.m_localized_item->m_srv );
-                }
-
-                renderer.draw_rect( bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top, 3.f, 0x44000000 );
-                renderer.draw_rect( bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top, 1.f, 0xFFFFFFFF );
-
-
-
-                renderer.draw_string_a( bounds.left + half, bounds.top - 14.f, fonts::verdana, 12.f, text_flags::centered | text_flags::drop_shadow, 0xFFFFFFFF, buffer );
             }
         }
 

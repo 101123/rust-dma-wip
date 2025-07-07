@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "fonts.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -101,6 +102,11 @@ bool renderer_manager::initialize() {
 
     RegisterClassA( &wnd_class );
 
+    m_screen_size = vec2i( 
+        GetSystemMetrics( SM_CXSCREEN ), 
+        GetSystemMetrics( SM_CYSCREEN ) 
+    );
+
     m_hwnd = CreateWindowExA(
         WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED,
         wnd_class.lpszClassName,
@@ -108,8 +114,8 @@ bool renderer_manager::initialize() {
         WS_POPUP,
         0,
         0,
-        GetSystemMetrics( SM_CXSCREEN ),
-        GetSystemMetrics( SM_CYSCREEN ),
+        m_screen_size.x,
+        m_screen_size.y,
         nullptr,
         nullptr,
         wnd_class.hInstance,
@@ -146,6 +152,7 @@ bool renderer_manager::initialize() {
     cfg.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_LightHinting;
 
     m_fonts[ fonts::verdana ] = io.Fonts->AddFontFromFileTTF( "C:\\Windows\\Fonts\\verdana.ttf", 0.f, &cfg );
+    m_fonts[ fonts::icon ] = io.Fonts->AddFontFromMemoryCompressedTTF( icon_font_compressed_data, icon_font_compressed_size, 13.f );
 
     if ( !ImGui_ImplWin32_Init( m_hwnd ) ) {
         // TODO: cleanup
@@ -178,7 +185,21 @@ bool renderer_manager::initialize() {
     return true;
 }
 
-void renderer_manager::begin_frame() {
+void renderer_manager::begin_frame( bool receive_input ) {
+    LONG flags = WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED;
+
+    if ( receive_input ) {
+        MSG msg;
+        while ( PeekMessage( &msg, nullptr, 0, 0, PM_REMOVE ) ) {
+            TranslateMessage( &msg );
+            DispatchMessage( &msg );
+        }
+
+        flags &= ~WS_EX_LAYERED;
+    }
+
+    SetWindowLong( m_hwnd, GWL_EXSTYLE, flags );
+
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
@@ -226,7 +247,7 @@ void renderer_manager::draw_string_a( float x, float y, uint32_t font_idx, float
         x -= bounds.x * 0.5f;
     }
 
-    uint32_t outline_color = IM_COL32( 0, 0, 0, color >> 24 );
+    uint32_t outline_color = IM_COL32( 0, 0, 0, 100 );
 
     if ( flags & ( text_flags::drop_shadow | text_flags::outline ) ) {
         draw_list->AddText( font, size, ImVec2( x + 1.f, y + 1.f ), outline_color, text );

@@ -446,10 +446,12 @@ void cache_players( scatter_request* scatter ) {
 			continue;
 		}
 
-		item_list.items->read_all( item_list.size, task->m_items, scatter );
+		if ( item_list.size != 0 ) {
+			item_list.items->read_all( item_list.size, task->m_items, scatter );
+		}
 	}
 
-	if ( !scatter->dirty() || !scatter->execute_and_clear() )
+	if ( scatter->dirty() && !scatter->execute_and_clear() )
 		return;
 
 	for ( int i = 1; i < count; i++ ) {

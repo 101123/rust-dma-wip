@@ -158,6 +158,7 @@
   <ItemGroup>
     <ClCompile Include="assets.cpp" />
     <ClCompile Include="cache.cpp" />
+    <ClCompile Include="config.cpp" />
     <ClCompile Include="engine.cpp" />
     <ClCompile Include="dma.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
@@ -180,9 +181,11 @@
   <ItemGroup>
     <ClInclude Include="assets.h" />
     <ClInclude Include="cache.h" />
+    <ClInclude Include="config.h" />
     <ClInclude Include="engine.h" />
     <ClInclude Include="dma.h" />
     <ClInclude Include="field.h" />
+    <ClInclude Include="fonts.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="il2cpp.h" />
     <ClInclude Include="include\hexrays.h" />

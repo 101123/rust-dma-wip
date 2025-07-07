@@ -1,10 +1,15 @@
 #pragma once
 
+#include <math/vec2.h>
+
 #include <d3d11.h>
 #include <cstdint>
 
+#define col32( r, g, b, a ) ( ( ( uint32_t )( a ) << 24 ) | ( ( uint32_t )( b ) << 16 ) | ( ( uint32_t ) ( g ) << 8 ) | ( ( uint32_t )( r ) << 0 ) )
+
 enum fonts {
-	verdana
+	verdana,
+	icon
 };
 
 enum text_flags {
@@ -17,7 +22,7 @@ class renderer_manager {
 public:
 	bool initialize();
 
-	void begin_frame();
+	void begin_frame( bool receive_input );
 	void end_frame();
 
 	void draw_rect( float x, float y, float width, float height, float thickness, uint32_t color, float rounding = 0.f );
@@ -34,6 +39,7 @@ public:
 	bool create_render_target();
 	bool create_d3d_device();
 
+	vec2i m_screen_size;
 	HWND m_hwnd;
 
 	ID3D11Device* m_device;

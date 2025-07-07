@@ -16,28 +16,6 @@ public:
 	const float* get_ptr() const {
 		return &x;
 	}
-
-	vec3 operator*( vec3 value ) {
-		float x = this->x * 2.f;
-		float y = this->y * 2.f;
-		float z = this->z * 2.f;
-		float xx = this->x * x;
-		float yy = this->y * y;
-		float zz = this->z * z;
-		float xy = this->x * y;
-		float xz = this->x * z;
-		float yz = this->y * z;
-		float wx = this->w * x;
-		float wy = this->w * y;
-		float wz = this->w * z;
-
-		vec3 result;
-		result.x = ( 1.f - ( yy + zz ) ) * value.x + ( xy - wz ) * value.y + ( xz + wy ) * value.z;
-		result.y = ( xy + wz ) * value.x + ( 1.0f - ( xx + zz ) ) * value.y + ( yz - wx ) * value.z;
-		result.z = ( xz - wy ) * value.x + ( yz + wx ) * value.y + ( 1.0f - ( xx + yy ) ) * value.z;
-
-		return result;
-	}
 };
 
 inline vec4 operator*( const vec4& lhs, const vec4& rhs ) {
@@ -59,3 +37,11 @@ inline vec4 operator-( const vec4& lhs, const vec4& rhs ) {
 inline vec4 lerp( const vec4& from, const vec4& to, float t ) {
 	return to * t + from * ( 1.f - t );
 }
+
+class vec4i {
+public:
+	int x, y, z, w;
+
+	vec4i() : x( 0 ), y( 0 ), z( 0 ), w( 0 ) {};
+	vec4i( int _x, int _y, int _z, int _w ) : x( _x ), y( _y ), z( _z ), w( _w ) {};
+};

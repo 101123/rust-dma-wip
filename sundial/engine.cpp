@@ -1,6 +1,7 @@
 #include "engine.h"
+#include "renderer.h"
 
-void unity_engine::update( scatter_request* scatter ) {
+void engine_manager::update( scatter_request* scatter ) {
     if ( !m_camera ) {
         camera* main_camera = main_camera::s_static_fields->main_camera;
         if ( main_camera ) {
@@ -17,20 +18,20 @@ void unity_engine::update( scatter_request* scatter ) {
     }
 }
 
-bool unity_engine::w2s( vec3* world, vec2* screen ) {
+bool engine_manager::w2s( vec3* world, vec2* screen ) {
     float w = dot( vec3( m_view_matrix[ 3 ], m_view_matrix[ 7 ], m_view_matrix[ 11 ] ), *world ) + m_view_matrix[ 15 ];
     if ( w < 0.098f )
         return false;
 
     *screen = vec2(
-        ( 2560.f * 0.5f ) * ( 1.f + ( dot( vec3( m_view_matrix[ 0 ], m_view_matrix[ 4 ], m_view_matrix[ 8 ] ), *world ) + m_view_matrix[ 12 ] ) / w ),
-        ( 1440.f * 0.5f ) * ( 1.f - ( dot( vec3( m_view_matrix[ 1 ], m_view_matrix[ 5 ], m_view_matrix[ 9 ] ), *world ) + m_view_matrix[ 13 ] ) / w )
+        ( ( float )renderer.m_screen_size.x * 0.5f ) * ( 1.f + ( dot( vec3( m_view_matrix[ 0 ], m_view_matrix[ 4 ], m_view_matrix[ 8 ] ), *world ) + m_view_matrix[ 12 ] ) / w ),
+        ( ( float )renderer.m_screen_size.y * 0.5f ) * ( 1.f - ( dot( vec3( m_view_matrix[ 1 ], m_view_matrix[ 5 ], m_view_matrix[ 9 ] ), *world ) + m_view_matrix[ 13 ] ) / w )
     ) + vec2( 0.f, 0.f );
 
     return true;
 }
 
-bool unity_engine::w2s( vec3* world ) {
+bool engine_manager::w2s( vec3* world ) {
     float w = dot( vec3( m_view_matrix[ 3 ], m_view_matrix[ 7 ], m_view_matrix[ 11 ] ), *world ) + m_view_matrix[ 15 ];
     if ( w < 0.098f )
         return false;

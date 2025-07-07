@@ -4,7 +4,17 @@
 
 class mat3x3 {
 public:
-	float data[ 3 * 3 ];
+	union {
+		float data[ 3 * 3 ];
+		vec3 vec[ 3 ];
+	};
+
+	mat3x3() {};
+	mat3x3( vec3 a, vec3 b, vec3 c ) {
+		vec[ 0 ] = a;
+		vec[ 1 ] = b;
+		vec[ 2 ] = c;
+	}
 
 	float& get( int row, int column ) { 
 		return data[ row + ( column * 3 ) ]; 

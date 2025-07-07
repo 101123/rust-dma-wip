@@ -94,4 +94,39 @@ namespace util {
 		T m_buffer[ N ];
 		size_t m_count;
 	};
+
+	inline constexpr uint64_t hash( const char* str ) {
+		uint64_t hash = 0xCBF29CE484222325ull;
+
+		while ( *str ) {
+			hash = ( hash ^ uint32_t( ( *str >= 'A' && *str <= 'Z' ) ? *str - ( 'A' - 'a' ) : *str ) ) *
+				0x100000001B3ull;
+			str++;
+		}
+
+		return hash;
+	}
+
+	inline consteval uint64_t hash_const( const char* str ) {
+		return hash( str );
+	}
+
+	inline constexpr uint64_t hash_w( const wchar_t* str ) {
+		uint64_t hash = 0xCBF29CE484222325ull;
+
+		while ( *str ) {
+			hash = ( hash ^ uint32_t( ( *str >= L'A' && *str <= L'Z' ) ? *str - ( L'A' - L'a' ) : *str ) & 0xFF ) *
+				0x100000001B3ull;
+			str++;
+		}
+
+		return hash;
+	}
+
+	inline consteval uint64_t hash_w_const( const wchar_t* str ) {
+		return hash_w_const( str );
+	}
 }
+
+#define H( x ) util::hash_const( x )
+#define HW( x ) util::hash_w_const( x )

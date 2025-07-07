@@ -37,11 +37,12 @@ class_lookup class_lookups[] = {
     { &tunnel_dweller::s_klass, nullptr, TunnelDweller_TypeDefinitionIndex },
     { &underwater_dweller::s_klass, nullptr, UnderwaterDweller_TypeDefinitionIndex },
     { &scarecrow_npc::s_klass, nullptr, ScarecrowNPC_TypeDefinitionIndex },
-    { &gingerbread_npc::s_klass, nullptr, GingerbreadNPC_TypeDefinitionIndex }
+    { &gingerbread_npc::s_klass, nullptr, GingerbreadNPC_TypeDefinitionIndex },
+    { &ui_belt::s_klass, nullptr, UIBelt_TypeDefinitionIndex }
 };
 
 parent_lookup parent_lookups[] = {
-    { nullptr, nullptr, 0 }
+    { &ui_belt::s_klass, nullptr, &singleton_component<ui_belt>::s_static_fields, 1 },
 };
 
 bool populate_classes() {
@@ -66,6 +67,24 @@ bool populate_classes() {
 
         if ( class_lookup.m_static_fields ) {
             *( uintptr_t* )( class_lookup.m_static_fields ) = klass->static_fields;
+        }
+    }
+
+    for ( parent_lookup& parent_lookup : parent_lookups ) {
+        il2cpp_class* klass = *parent_lookup.m_start;
+
+        while ( parent_lookup.m_depth-- ) {
+            klass = klass->parent;
+            if ( !klass )
+                return false;
+        }
+
+        if ( parent_lookup.m_value ) {
+            *parent_lookup.m_value = klass;
+        }
+
+        if ( parent_lookup.m_static_fields ) {
+            *( uintptr_t* )( parent_lookup.m_static_fields ) = klass->static_fields;
         }
     }
 
@@ -357,13 +376,13 @@ int main() {
     if ( !game_assembly ) 
         return 4;
 
-    LOG( "%p\n", game_assembly );
+    LOG( "GameAssembly.dll: %p\n", game_assembly );
 
     unity_player = dma.get_module_base_address( "UnityPlayer.dll" );
     if ( !unity_player )
         return 5;
     
-    LOG( "%p\n", unity_player );
+    LOG( "UnityPlayer.dll: %p\n", unity_player );
 
     while ( !populated_classes && populate_classes_tries++ < 120 ) {
         if ( populated_classes = populate_classes() ) {

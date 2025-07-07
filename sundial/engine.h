@@ -3,7 +3,7 @@
 #include "sdk.h"
 #include "shared.h"
 
-class unity_engine {
+class engine_manager {
 public:
 	void update( scatter_request* scatter );
 
@@ -17,4 +17,4 @@ public:
 	float m_camera_yaw;
 };
 
-inline unity_engine engine;
+inline engine_manager engine;

@@ -163,7 +163,7 @@ bool dma_manager::execute_scatter_request( void* scatter_handle ) {
 
 bool dma_manager::initialize() {
 #ifdef DMA
-    LPCSTR args[] = { "" , "-device", "fpga://algo=0", "-norefresh" };
+    LPCSTR args[] = { "" , "-device", "fpga://algo=0" };
     m_handle = VMMDLL_Initialize( _countof( args ), args );
     return m_handle != nullptr;
 #else

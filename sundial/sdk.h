@@ -10,6 +10,7 @@
 #include <math/mat3x3.h>
 #include <math/mat4x4.h>
 
+#include <intrin.h>
 #include <windows.h>
 #include <hexrays.h>
 
@@ -21,6 +22,7 @@ class terrain_meta;
 
 class il2cpp_class {
 public:
+    FIELD( il2cpp_class*, parent, Offsets::Il2CppClass::parent );
     FIELD( uintptr_t, static_fields, Offsets::Il2CppClass::static_fields );
 };
 
@@ -143,6 +145,79 @@ namespace unity {
         private:
             uint8_t __[ 4 ];
         };
+
+        inline vec4 chgsign( const vec4& x, const vec4& y ) {
+            vec4 result;
+            _mm_storeu_ps( result.get_ptr(), _mm_xor_ps( _mm_loadu_ps( x.get_ptr() ), _mm_and_ps( _mm_loadu_ps( y.get_ptr() ), _mm_set1_ps( -0.f ) ) ) );
+            return result;
+        }
+
+        inline vec3 chgsign( const vec3& x, const vec3& y ) {
+            vec4 xx = vec4( x.x, x.y, x.z, 0.f );
+            vec4 yy = vec4( y.x, y.y, y.z, 0.f );
+            vec4 result = chgsign( xx, yy );
+            return vec3( result.x, result.y, result.z );
+        }
+
+        inline vec4 quat_conj( const vec4& q ) {
+            return chgsign( q, vec4( -1.f, -1.f, -1.f, 1.f ) );
+        }
+
+        inline vec3 quat_mul_vec( const vec4& q, const vec3& u ) {
+            const vec3 c0 = vec3( -2.f, 2.f, -2.f );
+            const vec3 c1 = vec3( -2.f, -2.f, 2.f );
+            const vec3 c2 = vec3( 2.f, -2.f, -2.f );
+
+            vec3 qyxw = vec3( q.y, q.x, q.w );
+            vec3 qzwx = vec3( q.z, q.w, q.x );
+            vec3 qwzy = vec3( q.w, q.z, q.y );
+
+            vec3 m0 = ( c0 * q.y ) * qyxw - ( c2 * q.z ) * qzwx;
+            vec3 m1 = ( c1 * q.z ) * qwzy - ( c0 * q.x ) * qyxw;
+            vec3 m2 = ( c2 * q.x ) * qzwx - ( c1 * q.y ) * qwzy;
+
+            return vec3( ( u + u.x * m0 ) + ( u.y * m1 + u.z * m2 ) );
+        }
+
+        inline vec3 mul( trsx const& x, vec3 const& v ) {
+            return x.t + quat_mul_vec( x.q, v * x.s );
+        }
+
+        inline vec3 mul( const mat3x3& x, const vec3& v ) {
+            return x.vec[ 0 ] * v.x + ( ( x.vec[ 1 ] * v.y ) + x.vec[ 2 ] * v.z );
+        }
+
+        inline mat3x3 mul( const mat3x3& a, const mat3x3& b ) {
+            return mat3x3( mul( a, b.vec[ 0 ] ), mul( a, b.vec[ 1 ] ), mul( a, b.vec[ 2 ] ) );
+        }
+
+        inline vec4 scale_mul_quat( const vec3& scale, const vec4& q ) {
+            vec3 s = chgsign( vec3( 1.f, 0.f, 0.f ), scale );
+            return chgsign( q, vec4( s.y * s.z, s.x * s.z, s.x * s.y, 0.f ) );
+        }
+
+        inline vec4 quat_mul( const vec4& q1, const vec4& q2 ) {
+            vec4 vec = vec4( q1.y, q1.w, q1.z, q1.x ) * vec4( q2.x, q2.w, q2.y, q2.z )
+                - vec4( q1.w, q1.x, q1.y, q1.z ) * vec4( q2.z, q2.x, q2.z, q2.x )
+                - vec4( q1.z, q1.z, q1.w, q1.w ) * vec4( q2.w, q2.z, q2.x, q2.y )
+                - vec4( q1.x, q1.y, q1.x, q1.y ) * vec4( q2.y, q2.y, q2.w, q2.w );
+
+            return chgsign( vec4( vec.z, vec.w, vec.x, vec.y ), vec4( -1.f, -1.f, -1.f, 1.f ) );
+        }
+
+        inline void quat_to_matrix( const vec4& q, mat3x3& m ) {
+            vec3 yxw = vec3( q.y, q.x, q.w );
+            vec3 zwx = vec3( q.z, q.w, q.x );
+            vec3 wzy = vec3( q.w, q.z, q.y );
+
+            m.vec[ 0 ] = vec3( -2.f, 2.f, -2.f ) * q.y * yxw + vec3( -2.f, 2.f, 2.f ) * q.z * zwx + vec3( 1.f, 0.f, 0.f );
+            m.vec[ 1 ] = vec3( -2.f, -2.f, 2.f ) * q.z * wzy + vec3( 2.f, -2.f, 2.f ) * q.x * yxw + vec3( 0.f, 1.f, 0.f );
+            m.vec[ 2 ] = vec3( 2.f, -2.f, -2.f ) * q.x * zwx + vec3( 2.f, 2.f, -2.f ) * q.y * wzy + vec3( 0.f, 0.f, 1.f );
+        }
+
+        inline mat3x3 mul_scale( mat3x3 const& x, const vec3& s ) {
+            return mat3x3( x.vec[ 0 ] * s.x, x.vec[ 1 ] * s.y, x.vec[ 2 ] * s.z );
+        }
     }
 
     class transform_internal {
@@ -162,14 +237,71 @@ namespace unity {
             while ( parent_index >= 0 && parent_index <= m_local_transforms->capacity() && iterations++ < 256 ) {
                 math::trsx& parent = local_transforms[ parent_index ];
 
-                global_t = parent.q * global_t;
-                global_t = global_t * parent.s;
-                global_t = global_t + parent.t;
+                global_t = math::mul( parent, global_t );
 
                 parent_index = parent_indices[ parent_index ];
             }
 
             return global_t;
+        }
+
+        vec4 get_rotation( int index ) {
+            math::trsx* local_transforms = m_local_transforms->begin();
+            int* parent_indices = m_parent_indices->begin();
+
+            vec4 global_r = local_transforms[ index ].q;
+            int parent_index = parent_indices[ index ];
+
+            int iterations = 0;
+            while ( parent_index >= 0 && parent_index <= m_local_transforms->capacity() && iterations++ < 256 ) {
+                math::trsx& parent = local_transforms[ parent_index ];
+
+                global_r = math::scale_mul_quat( parent.s, global_r );
+                global_r = math::quat_mul( parent.q, global_r );
+
+                parent_index = parent_indices[ parent_index ];
+            }
+
+            return global_r;
+        }
+
+        mat3x3 calculate_rotation_matrix( int index ) {
+            math::trsx* local_transforms = m_local_transforms->begin();
+            int* parent_indices = m_parent_indices->begin();
+
+            mat3x3 parent_rs;
+            mat3x3 global_rs;
+
+            math::trsx& trs = local_transforms[ index ];
+            int parent_index = parent_indices[ index ];
+
+            math::quat_to_matrix( trs.q, global_rs );
+            global_rs = math::mul_scale( global_rs, trs.s );
+
+            int iterations = 0;
+            while ( parent_index >= 0 && parent_index <= m_local_transforms->capacity() && iterations++ < 256 ) {
+                math::trsx& parent = local_transforms[ parent_index ];
+
+                math::quat_to_matrix( parent.q, parent_rs );
+                parent_rs = math::mul_scale( parent_rs, parent.s );
+                global_rs = math::mul( parent_rs, global_rs );
+
+                parent_index = parent_indices[ parent_index ];
+            }
+
+            return global_rs;
+        }
+
+        mat3x3 calculate_scale_matrix( const vec4& rotation, int index ) {
+            mat3x3 grm_inv;
+            math::quat_to_matrix( math::quat_conj( rotation ), grm_inv );
+            mat3x3 grsm = calculate_rotation_matrix( index );
+            return math::mul( grm_inv, grsm );
+        }
+
+        vec3 get_lossy_scale( int index ) {
+            mat3x3 scale_matrix = calculate_scale_matrix( get_rotation( index ), index );
+            return vec3( scale_matrix.vec[ 0 ].x, scale_matrix.vec[ 1 ].y, scale_matrix.vec[ 2 ].z );
         }
 
     private:
@@ -225,8 +357,14 @@ namespace unity {
         FIELD( vec3, position, Offsets::Camera::m_LastPosition );
     };
 
-    class component {
+    class game_object {
+    public:
 
+    };
+
+    class component {
+    public:
+        FIELD( game_object*, game_object, Offsets::Component::m_GameObject );
     };
 
     class transform_hierarchy {
@@ -246,8 +384,6 @@ namespace unity {
     };
 }
 
-
-
 template <typename T = uintptr_t>
 class object : public il2cpp_object {
 public:
@@ -258,8 +394,19 @@ class transform : public object<unity::transform*> {
 
 };
 
-class component : public object<uintptr_t> {
+class component : public object<unity::component*> {
 
+};
+
+template <typename T>
+class singleton_component {
+public:
+    class static_fields {
+    public:
+        FIELD( T*, instance, Offsets::SingletonComponent::Instance );
+    };
+
+    static inline static_fields* s_static_fields;
 };
 
 class base_networkable : public component {
@@ -390,6 +537,18 @@ public:
     FIELD( player_loot*, loot, Offsets::PlayerInventory::loot );
 };
 
+enum player_flags : int {
+    is_admin = 4,
+    receiving_snapshot = 8,
+    sleeping = 16,
+    wounded = 64,
+    safe_zone = 131072,
+    incapacitated = 524288,
+    workbench1 = 1048576,
+    workbench2 = 2097152,
+    workbench3 = 4194304
+};
+
 class base_player : public base_combat_entity {
 public:
     class static_fields {
@@ -489,8 +648,12 @@ public:
     static inline static_fields* s_static_fields;
 };
 
+class ui_belt {
+public:
+    FIELD( sys::list<component*>*, item_icons, Offsets::UIBelt::ItemIcons );
 
-
+    static inline il2cpp_class* s_klass;
+};
 
 class world {
 public:
