@@ -34,10 +34,10 @@ bool asset_manager::load( const char* file_path ) {
 	        item.m_translations[ j ] = stream.read_string();
 	    }
 	
-	    size_t image_size = stream.read<size_t>();
+	    int image_size = stream.read<int>();
 	    void* image = stream.read( image_size );
 	
-	    item.m_srv = renderer.load_texture_from_memory( image, image_size );
+		item.m_srv = renderer.load_texture_from_memory( image, 128, 128 );
 	}
 	
 	fstream.close();

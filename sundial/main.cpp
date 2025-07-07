@@ -32,7 +32,12 @@ class_lookup class_lookups[] = {
     { nullptr, &world::s_static_fields, World_Static_TypeDefinitionIndex },
     { nullptr, &main_camera::s_static_fields, MainCamera_TypeDefinitionIndex },
     { nullptr, &base_player::s_static_fields, BasePlayer_Static_TypeDefinitionIndex },
-    { &base_player::s_klass, nullptr, BasePlayer_TypeDefinitionIndex }
+    { &base_player::s_klass, nullptr, BasePlayer_TypeDefinitionIndex },
+    { &scientist_npc::s_klass, nullptr, ScientistNPC_TypeDefinitionIndex },
+    { &tunnel_dweller::s_klass, nullptr, TunnelDweller_TypeDefinitionIndex },
+    { &underwater_dweller::s_klass, nullptr, UnderwaterDweller_TypeDefinitionIndex },
+    { &scarecrow_npc::s_klass, nullptr, ScarecrowNPC_TypeDefinitionIndex },
+    { &gingerbread_npc::s_klass, nullptr, GingerbreadNPC_TypeDefinitionIndex }
 };
 
 parent_lookup parent_lookups[] = {
@@ -123,7 +128,7 @@ FORCEINLINE uint32_t RoundfToIntPos( float f )
     return FloorfToIntPos( f + 0.5F );
 }
 
-FORCEINLINE int NormalizedToByte( float f )
+FORCEINLINE int normalized_to_byte( float f )
 {
     f = std::max( f, 0.f );
     f = std::min( f, 1.f );
@@ -272,10 +277,10 @@ ID3D11ShaderResourceView* render( MapImageConfig* config ) {
 
             uint8_t* data = ( uint8_t* )resource.pData + ( py * resource.RowPitch ) + ( px * 4 );
 
-            data[ 0 ] = NormalizedToByte( color.x );
-            data[ 1 ] = NormalizedToByte( color.y );
-            data[ 2 ] = NormalizedToByte( color.z );
-            data[ 3 ] = NormalizedToByte( 1.f );    
+            data[ 0 ] = normalized_to_byte( color.x );
+            data[ 1 ] = normalized_to_byte( color.y );
+            data[ 2 ] = normalized_to_byte( color.z );
+            data[ 3 ] = normalized_to_byte( 1.f );
         }
     }
 
@@ -369,7 +374,7 @@ int main() {
     }
 
     CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )cache_thread, NULL, 0, NULL );
-    //CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )update_thread, NULL, 0, NULL );
+    CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )update_thread, NULL, 0, NULL );
 
     /*auto a = DefaultConfig;
     auto b = render( &a );
@@ -380,7 +385,7 @@ int main() {
         renderer.end_frame();
     }
  */
-    // render_thread();
+     render_thread();
 
     while ( true ) {
         Sleep( 1000 );

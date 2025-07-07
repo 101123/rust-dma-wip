@@ -79,8 +79,6 @@ bool get_bounds( bounds* bounds, vec2* screen, bool* success, int count, float d
 
 void render_thread() {
     while ( true ) {
-        engine.update( nullptr );
-
         renderer.begin_frame();
 
         message* msg = nullptr;
@@ -103,14 +101,14 @@ void render_thread() {
         }
 
         if ( players_msg ) {
-            for ( cached_player player : players_msg->m_entities ) {
+            for ( cached_player& player : players_msg->m_entities ) {
                 vec2 screen[ bone_count ];
                 bool success[ bone_count ];
                 for ( int i = 0; i < bone_count; i++ ) {
                     success[ i ] = engine.w2s( &player.m_bone_positions[ i ], &screen[ i ] );
                 }
 
-                float cam_dist = distance( player.m_bone_positions[ 0 ], engine.m_cam_pos );
+                float cam_dist = distance( player.m_bone_positions[ 0 ], engine.m_camera_position );
 
                 bounds bounds;
                 if ( !get_bounds( &bounds, screen, success, bone_count, cam_dist ) ) {
@@ -118,8 +116,8 @@ void render_thread() {
                 }
 
 
-                char buffer[ 64 ];
-                sprintf( buffer, "Scientist [%.2fm]", cam_dist );
+                char buffer[ 128 ];
+                sprintf( buffer, "%ws %dm", player.m_name.str, ( int )cam_dist );
 
                 for ( int j = 0; j < bone_count; j++ ) {
                     int a = bone_connections[ j ][ 0 ];
@@ -132,14 +130,35 @@ void render_thread() {
                     renderer.draw_line( a_pos->x, a_pos->y, b_pos->x, b_pos->y, 1.15f, 0xFFFFFFFF );
                 }
 
+                float half = ( bounds.right - bounds.left ) / 2.f;
+
+                int present_items = 0;
+
+                for ( int k = 0; k < 6; k++ ) {
+                    cached_belt_item& belt_item = player.m_belt_items[ k ];
+                    if ( !belt_item.m_present )
+                        continue;
+
+                    present_items++;
+                }
+
+                float left = bounds.left + half - ( ( present_items / 2 ) * 32.f );
+
+                for ( int k = 0; k < 6; k++ ) {
+                    cached_belt_item& belt_item = player.m_belt_items[ k ];
+                    if ( !belt_item.m_present )
+                        continue;
+
+                    renderer.draw_filled_rect( left + ( k * 32.f ), bounds.top - 46.f, 32.f, 32.f, IM_COL32( 0, 0, 0, 100 ) );
+                    renderer.draw_image( left + ( k * 32.f ), bounds.top - 46.f, 32.f, 32.f, belt_item.m_localized_item->m_srv );
+                }
+
                 renderer.draw_rect( bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top, 3.f, 0x44000000 );
                 renderer.draw_rect( bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top, 1.f, 0xFFFFFFFF );
 
-                float half = ( bounds.right - bounds.left ) / 2.f;
 
 
-                renderer.draw_string_a( bounds.left + half, bounds.top - 14.f, fonts::verdana, 12.f, text_flags::centered | text_flags::drop_shadow, 0xFF1111BB, buffer );
-
+                renderer.draw_string_a( bounds.left + half, bounds.top - 14.f, fonts::verdana, 12.f, text_flags::centered | text_flags::drop_shadow, 0xFFFFFFFF, buffer );
             }
         }
 

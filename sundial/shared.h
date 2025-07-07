@@ -52,15 +52,16 @@ struct cached_belt_item {
 
 struct cached_player {
 	bool m_destroyed;
-	bool m_initial_update;
+	il2cpp_class* m_klass;
+	player_model* m_player_model;
 	int m_player_flags;
-	base_player* m_entity;
 	uint64_t m_user_id;
 	uint64_t m_team_id;
 	sys::string m_name;
 	cached_belt_item m_belt_items[ 6 ];
 	unity::transform* m_bone_transforms[ bone_count ];
 	vec3 m_bone_positions[ bone_count ];
+	vec3 m_relative_bone_positions[ bone_count ];
 };
 
 enum class message_type : uint8_t {

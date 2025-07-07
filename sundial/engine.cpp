@@ -1,5 +1,22 @@
 #include "engine.h"
 
+void unity_engine::update( scatter_request* scatter ) {
+    if ( !m_camera ) {
+        camera* main_camera = main_camera::s_static_fields->main_camera;
+        if ( main_camera ) {
+            m_camera = main_camera->cached_ptr;
+        }
+    }
+
+    if ( m_camera ) {
+        m_camera_forward = vec3( m_view_matrix[ 2 ], m_view_matrix[ 5 ], m_view_matrix[ 9 ] );
+        m_camera_yaw = atan2f( m_camera_forward.x, m_camera_forward.z );
+
+        scatter->add_field( &m_camera->view_matrix, &m_view_matrix );
+        scatter->add_field( &m_camera->position, &m_camera_position );
+    }
+}
+
 bool unity_engine::w2s( vec3* world, vec2* screen ) {
     float w = dot( vec3( m_view_matrix[ 3 ], m_view_matrix[ 7 ], m_view_matrix[ 11 ] ), *world ) + m_view_matrix[ 15 ];
     if ( w < 0.098f )
@@ -19,22 +36,4 @@ bool unity_engine::w2s( vec3* world ) {
         return false;
 
     return true;
-}
-
-uint8_t lbuffer[ 512 ];
-
-void unity_engine::update( scatter_request* scatter ) {
-    if ( !m_camera ) {
-        camera* main_camera = main_camera::s_static_fields->main_camera;
-        if ( main_camera ) {
-            m_camera = main_camera->cached_ptr;
-        }
-    }
-
-    if ( m_camera ) {
-        auto [ view_matrix, cam_pos ] = read_memory<mat4x4, vec3>( m_camera, { 0x30C, 0x454 }, lbuffer );
-
-        m_cam_pos = cam_pos;
-        memcpy( &m_view_matrix, &view_matrix, sizeof( m_view_matrix ) );
-    }
 }

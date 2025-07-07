@@ -10,6 +10,9 @@
 #include <math/mat3x3.h>
 #include <math/mat4x4.h>
 
+#include <windows.h>
+#include <hexrays.h>
+
 class terrain_height_map;
 class terrain_splat_map;
 class terrain_topology_map;
@@ -266,8 +269,10 @@ public:
         typedef sys::list_dictionary<uint64_t, base_networkable*>* Type;
         HIDDEN_VALUE( Type, entity_list, Offsets::BaseNetworkable_EntityRealm::entityList,
             {
-                values[ i ] = ( ( ( ( values[ i ] << 17 ) | ( values[ i ] >> 15 ) ) + 1113995468 ) << 8 ) |
-                    ( ( ( ( values[ i ] << 17 ) | ( values[ i ] >> 15 ) ) + 1113995468 ) >> 24 );
+                uint32_t a = ( ( ( values[ i ] + 1174773599 ) << 31 ) |
+                    ( ( unsigned int )( values[ i ] + 1174773599 ) >> 1 ) ) ^ 0x20A4ECF6;
+
+                values[ i ] = ( a << 21 ) | ( a >> 11 );
             }
         );
     };
@@ -276,8 +281,10 @@ public:
     public:
         HIDDEN_VALUE( entity_realm*, client_entities, Offsets::BaseNetworkable_Static::clientEntities,
             {
-                values[ i ] = ( ( ( ( values[ i ] ^ 0x304644AB ) - 2086859488 ) << 28 ) |
-                    ( ( ( values[ i ] ^ 0x304644ABu ) - 2086859488 ) >> 4 ) ) ^ 0x7DDF2392;
+                int64_t a = 4LL * ( ( ( values[ i ] >> 10 ) |
+                    ( values[ i ] << 22 ) ) - 945607450 );
+
+                values[ i ] = a | HIDWORD( a );
             }
         );
     };
@@ -319,7 +326,7 @@ public:
 
 class player_model {
 public:
-
+    FIELD( vec3, position, Offsets::PlayerModel::position );
 };
 
 class player_input {
@@ -390,8 +397,10 @@ public:
         typedef sys::list_dictionary<uint64_t, base_player*>* Type;
         HIDDEN_VALUE( Type, visible_player_list, Offsets::BasePlayer_Static::visiblePlayerList,
             {
-                values[ i ] = ( ( ( ( values[ i ] ^ 0x304644AB ) - 2086859488 ) << 28 ) |
-                    ( ( ( values[ i ] ^ 0x304644ABu ) - 2086859488 ) >> 4 ) ) ^ 0x7DDF2392;
+                int64_t a = 4LL * ( ( ( values[ i ] >> 10 ) |
+                    ( values[ i ] << 22 ) ) - 945607450 );
+
+                values[ i ] = a | HIDWORD( a );
             }
         );
     };
@@ -401,10 +410,10 @@ public:
     FIELD( player_walk_movement*, movement, Offsets::BasePlayer::movement );
     FIELD( uint64_t, current_team, Offsets::BasePlayer::currentTeam );
 
-    ENCRYPTED_VALUE( uint64_t, active_item, Offsets::BasePlayer::clActiveItem,
+    ENCRYPTED_VALUE( uint64_t, cl_active_item, Offsets::BasePlayer::clActiveItem,
         {
-            values[ i ] = ( ( ( ( values[ i ] << 29 ) | ( values[ i ] >> 3 ) ) ^ 0x2BC1D24A ) << 20 ) |
-                ( ( ( ( values[ i ] << 29 ) | ( values[ i ] >> 3 ) ) ^ 0x2BC1D24A ) >> 12 );
+            values[ i ] = ( ( ( values[ i ] + 2037793220 ) << 18 ) |
+                ( ( unsigned int )( values[ i ] + 2037793220 ) >> 14 ) ) ^ 0xF7AE84B8;
         }, {}
     );
 
@@ -413,24 +422,22 @@ public:
 
     HIDDEN_VALUE( player_eyes*, eyes, Offsets::BasePlayer::eyes,
         {
-            values[ i ] = ( ( ( ( values[ i ] << 19 ) | ( values[ i ] >> 13 ) ) ^ 0x9D632EE3 ) << 19 ) |
-                ( ( ( ( values[ i ] << 19 ) | ( values[ i ] >> 13 ) ) ^ 0x9D632EE3 ) >> 13 );
+            values[ i ] = ( ( ( ( values[ i ] << 20 ) | ( values[ i ] >> 12 ) ) ^ 0x7C383ED2 ) << 31 ) |
+                ( ( ( ( values[ i ] << 20 ) | ( values[ i ] >> 12 ) ) ^ 0x7C383ED2 ) >> 1 );
         }
     );
 
     ENCRYPTED_VALUE( uint64_t, user_id, Offsets::BasePlayer::userID,
         {
-            uint32_t a = ( ( ( values[ i ] + 806781542 ) << 16 ) |
-                ( ( unsigned int )( values[ i ] + 806781542 ) >> 16 ) ) - 2116548939;
-
-            values[ i ] = ( a << 24 ) | ( a >> 8 );
+            values[ i ] = ( ( ( ( values[ i ] << 14 ) | ( values[ i ] >> 18 ) ) - 387645640 ) << 27 ) |
+                ( ( ( ( values[ i ] << 14 ) | ( values[ i ] >> 18 ) ) - 387645640 ) >> 5 );
         }, {}
     );
 
     HIDDEN_VALUE( player_inventory*, inventory, Offsets::BasePlayer::inventory,
         {
-            values[ i ] = ( ( ( ( values[ i ] << 24 ) | ( values[ i ] >> 8 ) ) + 1923130967 ) << 27 ) |
-                ( ( ( ( values[ i ] << 24 ) | ( values[ i ] >> 8 ) ) + 1923130967 ) >> 5 );
+            values[ i ] = ( ( ( values[ i ] + 2141602309 ) ^ 0x49D01BA8 ) << 19 ) |
+                ( ( ( values[ i ] + 2141602309 ) ^ 0x49D01BA8u ) >> 13 );
         }
     );
 
@@ -440,9 +447,30 @@ public:
     static inline static_fields* s_static_fields;
 };
 
+class scientist_npc : public base_player {
+public:
+    static inline il2cpp_class* s_klass;
+};
 
+class tunnel_dweller : public base_player {
+public:
+    static inline il2cpp_class* s_klass;
+};
 
+class underwater_dweller : public base_player {
+public:
+    static inline il2cpp_class* s_klass;
+};
 
+class scarecrow_npc : public base_player {
+public:
+    static inline il2cpp_class* s_klass;
+};
+
+class gingerbread_npc : public base_player {
+public:
+    static inline il2cpp_class* s_klass;
+};
 
 
 class camera : public object<unity::camera*> {

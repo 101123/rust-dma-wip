@@ -6,7 +6,7 @@
 
 #include <windows.h>
 
-extern void update_bone_positions( fast_vector<cached_player>& players, scatter_request* scatter );
+extern void update_bone_positions( fast_vector<cached_player>& players, scatter_request* scatter, bool initial_update = false );
 
 static players* players_msg;
 
@@ -20,6 +20,7 @@ void update_thread() {
 		}
 
 		if ( players_msg ) {
+			engine.update( &scatter );
 			//engine.update( &scatter );
 			//auto a = GetTickCount64();
 			update_bone_positions( players_msg->m_entities, &scatter );

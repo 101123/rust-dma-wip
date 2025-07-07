@@ -185,6 +185,7 @@
     <ClInclude Include="field.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="il2cpp.h" />
+    <ClInclude Include="include\hexrays.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
     <ClInclude Include="include\imgui\imgui.h" />
     <ClInclude Include="include\imgui\imgui_freetype.h" />

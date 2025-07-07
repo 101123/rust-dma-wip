@@ -5,18 +5,16 @@
 
 class unity_engine {
 public:
+	void update( scatter_request* scatter );
+
 	bool w2s( vec3* world, vec2* screen );
 	bool w2s( vec3* world );
 
-	vec3 cam_pos() {
-		return m_cam_pos;
-	}
-
-	void update( scatter_request* scatter );
-
 	unity::camera* m_camera;
 	mat4x4 m_view_matrix;
-	vec3 m_cam_pos;
+	vec3 m_camera_position;
+	vec3 m_camera_forward;
+	float m_camera_yaw;
 };
 
 inline unity_engine engine;

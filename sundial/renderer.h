@@ -29,7 +29,7 @@ public:
 	void draw_string_w( float x, float y, uint32_t font, float size, uint32_t flags, uint32_t color, const wchar_t* text );
 	void draw_image( float x, float y, float width, float height, ID3D11ShaderResourceView* srv );
 
-	ID3D11ShaderResourceView* load_texture_from_memory( void* data, size_t size );
+	ID3D11ShaderResourceView* load_texture_from_memory( void* image_data, uint32_t image_width, uint32_t image_height );
 
 	bool create_render_target();
 	bool create_d3d_device();

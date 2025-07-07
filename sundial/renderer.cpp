@@ -261,20 +261,15 @@ void draw_image_callback( const ImDrawList* parent_list, const ImDrawCmd* cmd ) 
 void renderer_manager::draw_image( float x, float y, float width, float height, ID3D11ShaderResourceView* srv ) {
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-    //draw_list->AddCallback( draw_image_callback, m_image_sampler );
+    draw_list->AddCallback( draw_image_callback, m_image_sampler );
     draw_list->AddImage( srv, ImVec2( x, y ), ImVec2( x + width, y + height ) );
-    //draw_list->AddCallback( draw_image_callback, nullptr );
+    draw_list->AddCallback( draw_image_callback, nullptr );
 }
 
-ID3D11ShaderResourceView* renderer_manager::load_texture_from_memory( void* data, size_t size ) {
-    int image_width = 0, image_height = 0;
-    unsigned char* image_data = stbi_load_from_memory( ( unsigned char* )data, ( int )size, &image_width, &image_height, nullptr, 4 );
-    if ( !image_data )
-        return nullptr;
-
+ID3D11ShaderResourceView* renderer_manager::load_texture_from_memory( void* image_data, uint32_t image_width, uint32_t image_height ) {
     D3D11_TEXTURE2D_DESC texture_desc {
-        .Width = ( uint32_t )image_width,
-        .Height = ( uint32_t )image_height,
+        .Width = image_width,
+        .Height = image_height,
         .MipLevels = 0,
         .ArraySize = 1,
         .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -290,10 +285,8 @@ ID3D11ShaderResourceView* renderer_manager::load_texture_from_memory( void* data
     };
 
     ID3D11Texture2D* texture = nullptr;
-    if ( m_device->CreateTexture2D( &texture_desc, nullptr, &texture ) != S_OK ) {
-        stbi_image_free( image_data );
+    if ( m_device->CreateTexture2D( &texture_desc, nullptr, &texture ) != S_OK )
         return nullptr;
-    }
 
     m_device_context->UpdateSubresource( texture, 0, nullptr, image_data, image_width * 4, 0 );
 
@@ -308,13 +301,11 @@ ID3D11ShaderResourceView* renderer_manager::load_texture_from_memory( void* data
 
     ID3D11ShaderResourceView* srv = nullptr;
     if ( m_device->CreateShaderResourceView( texture, &srv_desc, &srv ) != S_OK ) {
-        stbi_image_free( image_data );
         texture->Release();
         return nullptr;
     }
 
     m_device_context->GenerateMips( srv );
-    stbi_image_free( image_data );
     texture->Release();
     return srv;
 }
