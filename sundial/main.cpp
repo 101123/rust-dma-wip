@@ -345,6 +345,8 @@ cleanup:
 #include "update.h"
 #include "render.h"
 
+#include "tlb.h"
+
 int main() {
     LOG( "initializing dma\n" );
     if ( !dma.initialize() ) {
@@ -364,13 +366,13 @@ int main() {
         return 3;
     }
 
-    uint32_t process_id = dma.get_process_id( "RustClient.exe" );
-    if ( !process_id ) {
+    process_info rust = dma.get_process_info( "RustClient.exe" );
+    if ( !rust.m_cr3 ) {
         LOG( "failed to find rust process!\n" );
         return 3;
     }
 
-    dma.set_process_id( process_id );
+    dma.set_process_id( rust.m_pid );
 
     game_assembly = dma.get_module_base_address( "GameAssembly.dll" );
     if ( !game_assembly ) 
@@ -384,6 +386,19 @@ int main() {
     
     LOG( "UnityPlayer.dll: %p\n", unity_player );
 
+    cache_tlb_config config {
+        .m_pml4_pre_cache = true,
+        .m_pdpt_pre_cache = true,
+        .m_pd_pre_cache = false,
+        .m_pt_pre_cache = false,
+        .m_pml4_invalidation_access_count = UINT16_MAX,
+        .m_pdpt_invalidation_access_count = UINT16_MAX,
+        .m_pd_invalidation_access_count = UINT16_MAX,
+        .m_pt_invalidation_access_count = UINT16_MAX
+    };
+
+    tlb.initialize( rust.m_cr3, config );
+
     while ( !populated_classes && populate_classes_tries++ < 120 ) {
         if ( populated_classes = populate_classes() ) {
             break;
@@ -391,6 +406,8 @@ int main() {
 
         Sleep( 1000 );
     }
+
+    LOG( "Init done!\n" );
 
     CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )cache_thread, NULL, 0, NULL );
     CreateThread( NULL, 0, ( LPTHREAD_START_ROUTINE )update_thread, NULL, 0, NULL );

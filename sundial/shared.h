@@ -53,7 +53,9 @@ struct cached_belt_item {
 struct cached_player {
 	bool m_destroyed;
 	il2cpp_class* m_klass;
+	base_player* m_entity;
 	player_model* m_player_model;
+	int m_lifestate;
 	int m_player_flags;
 	uint64_t m_user_id;
 	uint64_t m_team_id;

@@ -2,7 +2,6 @@
 
 #include "scatter.h"
 #include "offsets.h"
-#include "global.h"
 
 enum handle_type {
 	handle_weak,
@@ -52,7 +51,7 @@ public:
 	}
 
 	bool cache_entries( scatter_request* scatter ) {
-		bool status = true;
+		bool any_failed = false;
 
 		for ( size_t i = 0; i < _countof( m_gc_handles ); i++ ) {
 			const handle_data& handles = m_gc_handles[ i ];
@@ -62,12 +61,12 @@ public:
 			m_entries[ i ].resize( handles.size, {} );
 
 			if ( !scatter->add_read( handles.entries, m_entries[ i ].begin(), handles.size * sizeof( void* ) ) ) {
-				status = false;
+				any_failed = true;
 				break;
 			}
 		}
 
-		return status;
+		return !any_failed;
 	}
 
 	template <typename T>

@@ -5,6 +5,7 @@
 #include "il2cpp.h"
 
 #include "shared.h"
+#include "render.h"
 
 #include <windows.h>
 
@@ -54,8 +55,6 @@ bool populate_entity_lists() {
 		}
 	}
 
-	LOG( "%p %p\n", cached_entity_list, cached_player_list );
-
 	return cached_entity_list && cached_player_list;
 }
 
@@ -86,6 +85,7 @@ struct cache_player_task {
 
 	il2cpp_class* m_klass;
 	model* m_model;
+	int m_lifestate;
 
 	player_model* m_player_model;
 	uint64_t m_team_id;
@@ -96,7 +96,6 @@ struct cache_player_task {
 	hidden_value<player_inventory*, base_player::decrypt_inventory_handle>* m_inventory_hidden_value;
 	mem_ref<sys::string> m_name;
 
-	vec3 m_position;
 	mem_ref<sys::array<transform*>> m_bone_transforms;
 
 	transform* m_transforms[ 128 ];
@@ -177,6 +176,9 @@ void update_bone_positions( fast_vector<cached_player>& players, scatter_request
 			if ( update_type == relative_update ) {
 				task->m_relative_update = true;
 			}
+
+			scatter->add_field( &player->m_entity->lifestate, &player->m_lifestate );
+			scatter->add_field( &player->m_entity->player_flags, &player->m_player_flags );
 		}
 
 		scatter->add_field( &player->m_player_model->position, &task->m_base_position );
@@ -196,6 +198,11 @@ void update_bone_positions( fast_vector<cached_player>& players, scatter_request
 		update_player_task* task = &update_player_tasks[ i ];
 		if ( !task->m_continue ) 
 			continue;
+
+		if ( ( player->m_lifestate != lifestate::alive || player->m_player_flags & player_flags::sleeping ) && !initial_update ) {
+			task->m_continue = false;
+			continue;
+		}
 
 		if ( task->m_relative_update ) {
 			for ( int j = 0; j < bone_count; j++ ) {
@@ -297,7 +304,7 @@ void cache_players( scatter_request* scatter ) {
 
 		scatter->add_field( &base_player->klass, &task->m_klass );
 		scatter->add_field( &base_player->model, &task->m_model );
-		// lifestate
+		scatter->add_field( &base_player->lifestate, &task->m_lifestate );
 		// health
 		// input
 		// movement
@@ -322,6 +329,7 @@ void cache_players( scatter_request* scatter ) {
 			continue;
 
 		if ( !task->m_klass || !task->m_model || !task->m_player_model || !task->m_inventory_hidden_value || !task->m_name.m_ptr ) {
+			LOG( "TASK_FAIL_A %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -332,7 +340,6 @@ void cache_players( scatter_request* scatter ) {
 		base_player::decrypt_user_id( ( uint32_t* )&task->m_user_id );
 
 		scatter->add_field( &task->m_model->bone_transforms, &task->m_bone_transforms.m_ptr );
-		scatter->add_field( &task->m_player_model->position, &task->m_position );
 		scatter->add_field( &task->m_inventory_hidden_value->_handle, &task->m_inventory.m_handle );
 
 		if ( task->m_klass == base_player::s_klass ) {
@@ -351,6 +358,7 @@ void cache_players( scatter_request* scatter ) {
 			continue;
 
 		if ( !task->m_bone_transforms.m_ptr ) {
+			LOG( "TASK_FAIL_B %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -358,6 +366,7 @@ void cache_players( scatter_request* scatter ) {
 		base_player::decrypt_inventory_handle( ( uint32_t* )&task->m_inventory.m_handle );
 
 		if ( !hidden_values.get( task->m_inventory.m_handle, &task->m_inventory.m_value ) ) {
+			LOG( "TASK_FAIL_C %d %p\n", i, task->m_inventory.m_value );
 			task->m_continue = false;
 			continue;
 		}
@@ -375,6 +384,7 @@ void cache_players( scatter_request* scatter ) {
 
 		uint64_t transform_count = task->m_bone_transforms.m_value.size;
 		if ( transform_count < 0 || transform_count > 128 ) {
+			LOG( "TASK_FAIL_D %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -392,6 +402,7 @@ void cache_players( scatter_request* scatter ) {
 			continue;
 
 		if ( !task->m_belt ) {
+			LOG( "TASK_FAIL_E %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -409,6 +420,7 @@ void cache_players( scatter_request* scatter ) {
 		}
 
 		if ( any_failed ) {
+			LOG( "TASK_FAIL_F %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -425,6 +437,7 @@ void cache_players( scatter_request* scatter ) {
 			continue;
 		
 		if ( !task->m_item_list.m_ptr ) {
+			LOG( "TASK_FAIL_G %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -442,6 +455,7 @@ void cache_players( scatter_request* scatter ) {
 
 		const sys::list<item*>& item_list = task->m_item_list.m_value;
 		if ( !item_list.items || ( item_list.size < 0 || item_list.size > 6 ) ) {
+			LOG( "TASK_FAIL_H %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -477,6 +491,7 @@ void cache_players( scatter_request* scatter ) {
 		}
 
 		if ( any_failed ) {
+			LOG( "TASK_FAIL_I %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -503,6 +518,7 @@ void cache_players( scatter_request* scatter ) {
 		}
 
 		if ( any_failed ) {
+			LOG( "TASK_FAIL_J %d\n", i );
 			task->m_continue = false;
 			continue;
 		}
@@ -520,6 +536,7 @@ void cache_players( scatter_request* scatter ) {
 	msg->m_entities.reserve( count );
 
 	for ( int i = 1; i < count; i++ ) {
+		base_player* base_player = base_players[ i ];
 		cache_player_task* task = &cache_player_tasks[ i ];
 		if ( !task->m_continue )
 			continue;
@@ -528,7 +545,9 @@ void cache_players( scatter_request* scatter ) {
 
 		player->m_destroyed = false;
 		player->m_klass = task->m_klass;
+		player->m_entity = base_player;
 		player->m_player_model = task->m_player_model;
+		player->m_lifestate = task->m_lifestate;
 		player->m_player_flags = task->m_player_flags;
 		player->m_team_id = task->m_team_id;
 		player->m_user_id = task->m_user_id;
@@ -545,6 +564,8 @@ void cache_players( scatter_request* scatter ) {
 			wcscpy_s( player->m_name.str, sizeof( player->m_name.str ), L"Scarecrow" );
 		} else if ( player->m_klass == gingerbread_npc::s_klass ) {
 			wcscpy_s( player->m_name.str, sizeof( player->m_name.str ), L"Gingerbread" );
+		} else {
+			wcscpy_s( player->m_name.str, sizeof( player->m_name.str ), L"Unknown" );
 		}
 
 		memset( &player->m_belt_items, 0, sizeof( player->m_belt_items ) );
@@ -578,7 +599,78 @@ void cache_thread() {
 
 	while ( true ) {
 		if ( populate_entity_lists() ) {
+			auto a = GetTickCount64();
 			cache_players( &scatter );
+			LOG( "cache_players: %llu\n", GetTickCount64() - a );
+		}
+
+		ui_belt* belt_ui = singleton_component<ui_belt>::s_static_fields->instance;
+		if ( belt_ui ) {
+			sys::list<component*>* item_icons = belt_ui->item_icons;
+			if ( item_icons ) {
+				sys::list<component*> buff = read_memory<sys::list<component*>>( item_icons );
+
+				component** components = buff.items->read_all( buff.size );
+				if ( !components )
+					return;
+
+				for ( int i = 0; i < buff.size; i++ ) {
+					component* component = components[ i ];
+					if ( !component )
+						continue;
+
+					unity::component* internal_component = component->cached_ptr;
+					if ( !internal_component )
+						continue;
+
+					unity::game_object* game_object = internal_component->game_object;
+					if ( !game_object )
+						continue;
+
+					unity::transform* transform = game_object->get_transform();
+					if ( !transform )
+						continue;
+
+					unity::transform_access transform_access = transform->transform_data;
+					if ( transform_access.index < 0 || transform_access.index > 65536 )
+						continue;
+
+					unity::transform_hierarchy* hierarchy = transform_access.hierarchy;
+					if ( !hierarchy )
+						continue;
+
+					unity::math::trsx* local_transforms = hierarchy->local_transforms;
+					if ( !local_transforms )
+						continue;
+
+					int* parent_indices = hierarchy->parent_indices;
+					if ( !parent_indices )
+						continue;
+
+					fast_vector<unity::math::trsx> lt;
+					fast_vector<int> pi;
+
+					lt.resize( transform_access.index * 2 );
+					pi.resize( transform_access.index * 2 );
+
+					size_t local_transforms_size = ( transform_access.index * sizeof( unity::math::trsx ) ) + sizeof( unity::math::trsx );
+					size_t parent_indices_size = ( transform_access.index * sizeof( int ) ) + sizeof( int );
+
+					read_memory( local_transforms, lt.begin(), local_transforms_size );
+					read_memory( parent_indices, pi.begin(), parent_indices_size );
+
+					unity::transform_internal ti( &lt, &pi );
+
+					belt_lossy_scale = ti.get_lossy_scale( transform_access.index );
+					belt_position = ti.get_position( transform_access.index );
+
+					LOG( "%.2f %.2f\n", belt_lossy_scale.x, belt_position.x );
+
+					break;
+				}
+
+				delete[] components;
+			}
 		}
 
 		Sleep( 1000 );

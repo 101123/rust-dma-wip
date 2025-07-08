@@ -122,6 +122,9 @@ void draw_players( fast_vector<cached_player>& players ) {
         if ( player.m_destroyed )
             continue;
 
+        if ( player.m_lifestate != lifestate::alive )
+            continue;
+
         player_visuals* visuals = player.m_klass == base_player::s_klass ? &cvar_players : &cvar_scientists;
 
         bool wounded = player.m_player_flags & player_flags::wounded;
@@ -344,12 +347,29 @@ void render_thread() {
             draw_players( players_msg->m_entities );         
 
             if ( target_player ) {
-                if ( target_player->m_klass == base_player::s_klass ) {
 
-                }
+                float icon_width = 60.f * belt_lossy_scale.x;
+                float icon_height = icon_width;
 
-                else {
+                float padding = 4.f * belt_lossy_scale.x;
 
+                float x = floorf( belt_position.x - ( icon_width * 0.5f ) );
+                float y = floorf( ( float )renderer.m_screen_size.y - ( belt_position.y + icon_height * 0.5f ) );
+
+                y -= icon_height + padding;
+
+                renderer.draw_string_w( x + ( ( icon_width + padding ) * 3.f ), y - 14.f,
+                    fonts::verdana, 12.f, text_flags::centered | text_flags::drop_shadow, col32( 255, 255, 255, 255 ), target_player->m_name.str );
+
+                for ( int i = 0; i < 6; i++ ) {
+                    renderer.draw_filled_rect( x, y, icon_width, icon_height, col32( 140, 140, 255, 80 ) );
+
+                    cached_belt_item& belt_item = target_player->m_belt_items[ i ];
+                    if ( belt_item.m_present ) {
+                        renderer.draw_image( x, y, icon_width, icon_height, belt_item.m_localized_item->m_srv );
+                    }
+
+                    x += icon_width + padding;
                 }
             }
         }

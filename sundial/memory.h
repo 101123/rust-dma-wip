@@ -1,15 +1,56 @@
 #pragma once
 
 #include "dma.h"
+#include "tlb.h"
 
 #include <array>
 #include <tuple>
+
+#define PAGE_SIZE 0x1000
+#define MAX_PATTERN_SIZE 128
+
+inline cache_tlb tlb;
+
+template <typename A>
+inline bool read_physical_memory( A address, void* buffer, size_t size ) {
+    static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
+
+    return dma.read_memory( ( uintptr_t )address, buffer, size );
+}
+
+template <typename A>
+inline bool read_virtual_memory( A address, void* buffer, size_t size ) {
+    static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
+
+    uintptr_t va = ( uintptr_t )address;
+    uintptr_t dest = ( uintptr_t )buffer;
+    size_t remaining = size;
+    
+    while ( remaining ) {
+        size_t offset_in_page = va & ( PAGE_SIZE - 1 );
+        size_t bytes_in_page = PAGE_SIZE - offset_in_page;
+        size_t read_size = bytes_in_page < remaining ? bytes_in_page : remaining; // min
+
+        uintptr_t pa = 0;
+        if ( !tlb.translate( va, &pa ) )
+            return false;
+
+        if ( !dma.read_memory( pa, ( void* )dest, read_size ) )
+            return false;
+
+        va += read_size;
+        dest += read_size;
+        remaining -= read_size;
+    }
+
+    return true;
+}
 
 template <typename A>
 inline bool read_memory( A address, void* buffer, size_t size ) {
     static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
 
-    return dma.read_memory( ( uintptr_t )address, buffer, size );
+    return read_virtual_memory( address, buffer, size );
 }
 
 template <typename T>
@@ -22,7 +63,7 @@ inline T read_memory( A address ) {
     static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
 
     T buffer = {};
-    dma.read_memory( ( uintptr_t )address, &buffer, sizeof( buffer ) );
+    read_memory( address, &buffer, sizeof( buffer ) );
     return buffer;
 }
 

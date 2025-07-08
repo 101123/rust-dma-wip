@@ -2,11 +2,16 @@
 
 #include <cstdint>
 
+struct process_info {
+	uint32_t m_pid;
+	uintptr_t m_cr3;
+};
+
 class dma_manager {
 public:
 	bool initialize();
 
-	uint32_t get_process_id( const char* process_name );
+	process_info get_process_info( const char* process_name );
 	void set_process_id( uint32_t process_id );
 
 	uintptr_t get_module_base_address( const char* name );

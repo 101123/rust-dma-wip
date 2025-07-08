@@ -357,9 +357,35 @@ namespace unity {
         FIELD( vec3, position, Offsets::Camera::m_LastPosition );
     };
 
-    class game_object {
-    public:
+    class component;
+    class transform;
 
+    template <typename T>
+    struct dynamic_array {
+        T* m_data;
+        uint64_t m_label;
+        size_t m_size;
+        size_t m_capacity;
+    };
+
+    class game_object {
+    private:
+        typedef std::pair<int, component*> component_pair;
+
+    public:
+        FIELD( il2cpp_object*, scripting_object, Offsets::GameObject::m_ScriptingObject );
+        FIELD( dynamic_array<component_pair>, components, Offsets::GameObject::m_Component );
+        FIELD( bool, is_active, Offsets::GameObject::m_IsActive );
+        FIELD( uintptr_t, name, Offsets::GameObject::m_Name );
+
+        transform* get_transform() {
+            dynamic_array<component_pair> component_list = components;
+            if ( !component_list.m_data || ( component_list.m_size < 1 || component_list.m_size > 65536 ) )
+                return nullptr;
+
+            component_pair nig = read_memory<component_pair>( component_list.m_data );
+            return ( transform* )nig.second;
+        }
     };
 
     class component {
@@ -458,7 +484,10 @@ public:
 
 
 
-
+enum lifestate : int {
+    alive,
+    dead
+};
 
 class base_combat_entity : public base_entity {
 public:

@@ -20,11 +20,10 @@ void update_thread() {
 		}
 
 		if ( players_msg ) {
-			engine.update( &scatter );
-			//engine.update( &scatter );
 			//auto a = GetTickCount64();
+			engine.update( &scatter );
 			update_bone_positions( players_msg->m_entities, &scatter );
-			//LOG( "%llu\n", GetTickCount64() - a );
+			//LOG( "update_thread: %llu\n", GetTickCount64() - a );
 		}
 	}
 }

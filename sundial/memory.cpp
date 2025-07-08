@@ -2,9 +2,6 @@
 
 #include <windows.h>
 
-#define PAGE_SIZE 0x1000
-#define MAX_PATTERN_SIZE 128
-
 bool compare_pattern( uint8_t* base, uint8_t* pattern, size_t mask ) {
 	for ( ; mask; ++base, ++pattern, mask-- ) {
 		if ( *pattern != 0xCC && *base != *pattern ) {
@@ -62,7 +59,7 @@ uintptr_t find_pattern_remote( uintptr_t address, size_t size, const char* patte
 
 	for ( int i = 0; i < ( size / PAGE_SIZE ); i++ ) {
 		uintptr_t va = address + ( i * PAGE_SIZE );
-		dma.read_memory( va, &buffer[ mask ], PAGE_SIZE );
+		read_memory( va, &buffer[ mask ], PAGE_SIZE );
 
 		uintptr_t result = find_pattern( buffer, PAGE_SIZE + mask, ( uint8_t* )pattern, mask );
 
