@@ -32,7 +32,7 @@ public:
     }
 
     template <typename A>
-    inline bool add_physical_read( A address, void* buffer, size_t size ) {
+    inline bool add_virtual_read( A address, void* buffer, size_t size ) {
         static_assert( sizeof( A ) == sizeof( uintptr_t ), "size of address must be equivalent to size of uintptr_t" );
 
         uintptr_t va = ( uintptr_t )address;
@@ -40,8 +40,8 @@ public:
         size_t remaining = size;
 
         while ( remaining ) {
-            size_t offset_in_page = va & ( PAGE_SIZE - 1 );
-            size_t bytes_in_page = PAGE_SIZE - offset_in_page;
+            size_t offset_in_page = va & ( page_size - 1 );
+            size_t bytes_in_page = page_size - offset_in_page;
             size_t read_size = bytes_in_page < remaining ? bytes_in_page : remaining; // min
 
             uintptr_t pa = 0;
@@ -65,7 +65,7 @@ public:
 
         m_dirty = true;
 
-        return add_physical_read( address, buffer, size );
+        return add_virtual_read( address, buffer, size );
     }
 
     template <typename T, typename A>

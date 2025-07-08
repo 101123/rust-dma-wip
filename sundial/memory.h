@@ -6,8 +6,8 @@
 #include <array>
 #include <tuple>
 
-#define PAGE_SIZE 0x1000
-#define MAX_PATTERN_SIZE 128
+#define page_size 0x1000
+#define max_pattern_size 128
 
 inline cache_tlb tlb;
 
@@ -27,8 +27,8 @@ inline bool read_virtual_memory( A address, void* buffer, size_t size ) {
     size_t remaining = size;
     
     while ( remaining ) {
-        size_t offset_in_page = va & ( PAGE_SIZE - 1 );
-        size_t bytes_in_page = PAGE_SIZE - offset_in_page;
+        size_t offset_in_page = va & ( page_size - 1 );
+        size_t bytes_in_page = page_size - offset_in_page;
         size_t read_size = bytes_in_page < remaining ? bytes_in_page : remaining; // min
 
         uintptr_t pa = 0;

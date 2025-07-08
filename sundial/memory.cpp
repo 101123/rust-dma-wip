@@ -54,20 +54,20 @@ uintptr_t find_pattern_image( uintptr_t image, const char* pattern ) {
 }
 
 uintptr_t find_pattern_remote( uintptr_t address, size_t size, const char* pattern, size_t mask ) {
-	uint8_t buffer[ PAGE_SIZE + MAX_PATTERN_SIZE ];
+	uint8_t buffer[ page_size + max_pattern_size ];
 	memset( buffer, 0xCC, mask );
 
-	for ( int i = 0; i < ( size / PAGE_SIZE ); i++ ) {
-		uintptr_t va = address + ( i * PAGE_SIZE );
-		read_memory( va, &buffer[ mask ], PAGE_SIZE );
+	for ( int i = 0; i < ( size / page_size ); i++ ) {
+		uintptr_t va = address + ( i * page_size );
+		read_memory( va, &buffer[ mask ], page_size );
 
-		uintptr_t result = find_pattern( buffer, PAGE_SIZE + mask, ( uint8_t* )pattern, mask );
+		uintptr_t result = find_pattern( buffer, page_size + mask, ( uint8_t* )pattern, mask );
 
 		if ( result ) {
 			return va + ( result - ( uintptr_t )&buffer[ mask ] );
 		}
 
-		memcpy( buffer, &buffer[ PAGE_SIZE ], mask );
+		memcpy( buffer, &buffer[ page_size ], mask );
 	}
 }
 
