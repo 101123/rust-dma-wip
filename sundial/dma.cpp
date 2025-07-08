@@ -44,12 +44,16 @@ process_info dma_manager::get_process_info( const char* process_name ) {
         .dwSize = sizeof( PROCESSENTRY32 )
     };
 
-    uint32_t process_id = 0;
+    process_info process_info = {};
 
     if ( Process32First( snapshot, &process_entry ) ) {
         do {
             if ( strcmp( process_entry.szExeFile, process_name ) == 0 ) {
-                process_id = process_entry.th32ProcessID;
+                process_info = {
+                    .m_pid = process_entry.th32ProcessID,
+                    .m_cr3 = 0ull
+                };
+
                 break;
             }
 
@@ -57,7 +61,7 @@ process_info dma_manager::get_process_info( const char* process_name ) {
     }
 
     CloseHandle( snapshot );
-    return process_id;
+    return process_info;
 #endif
 }
 
