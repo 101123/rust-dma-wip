@@ -3,6 +3,12 @@
 #include <cstdint>
 #include <intrin.h>
 
+enum time_unit {
+	microseconds = 10,
+	milliseconds = 10000,
+	seconds = 10000000
+};
+
 namespace util {
 	class mutex {
 	public:
@@ -22,6 +28,39 @@ namespace util {
 
 	private:
 		char* m_lock;
+	};
+
+	template <uint64_t unit>
+	class timer {
+	public:
+		timer() : m_previous_time( get_time() ) {}
+
+		bool has_elapsed( uint64_t time ) {
+			if ( ( ( get_time() - m_previous_time ) / unit ) > time ) {
+				m_previous_time = get_time();
+				return true;
+			}
+
+			return false;
+		}
+
+		uint64_t get_elapsed() {
+			return ( get_time() - m_previous_time ) / unit;
+		}
+
+		double get_delta_time() {
+			uint64_t time = get_time();
+			uint64_t delta = time - m_previous_time;
+			m_previous_time = time;
+			return ( double )delta / unit;
+		}
+
+	private:
+		uint64_t get_time() {
+			return ( *( uint64_t* )( 0x7FFE0018ull ) << 32 ) | *( uint32_t* )( 0x7FFE0014ull );
+		}
+
+		uint64_t m_previous_time;
 	};
 
 	template <typename T, size_t N>

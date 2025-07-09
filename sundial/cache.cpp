@@ -565,7 +565,7 @@ void cache_players( scatter_request* scatter ) {
 		} else if ( player->m_klass == gingerbread_npc::s_klass ) {
 			wcscpy_s( player->m_name.str, sizeof( player->m_name.str ), L"Gingerbread" );
 		} else {
-			wcscpy_s( player->m_name.str, sizeof( player->m_name.str ), L"Unknown" );
+			wcscpy_s( player->m_name.str, sizeof( player->m_name.str ), L"Scientist" );
 		}
 
 		memset( &player->m_belt_items, 0, sizeof( player->m_belt_items ) );

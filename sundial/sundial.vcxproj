@@ -208,7 +208,7 @@
     <ClInclude Include="include\memprocfs\leechcore.h" />
     <ClInclude Include="include\memprocfs\vmmdll.h" />
     <ClInclude Include="include\spsc-queue.hpp" />
-    <ClInclude Include="include\stb_image.h" />
+    <ClInclude Include="input.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="offsets.h" />
     <ClInclude Include="offsets_manual.h" />

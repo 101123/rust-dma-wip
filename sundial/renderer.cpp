@@ -7,9 +7,6 @@
 #include <imgui/imgui_impl_win32.h>
 #include <imgui/imgui_freetype.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include <dwmapi.h>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam );
@@ -279,12 +276,18 @@ void draw_image_callback( const ImDrawList* parent_list, const ImDrawCmd* cmd ) 
     render_state->DeviceContext->PSSetSamplers( 0, 1, &sampler );
 }
 
-void renderer_manager::draw_image( float x, float y, float width, float height, ID3D11ShaderResourceView* srv ) {
+void renderer_manager::draw_image( float x, float y, float width, float height, uint32_t color, ID3D11ShaderResourceView* srv, bool use_sampler ) {
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-    draw_list->AddCallback( draw_image_callback, m_image_sampler );
-    draw_list->AddImage( srv, ImVec2( x, y ), ImVec2( x + width, y + height ) );
-    draw_list->AddCallback( draw_image_callback, nullptr );
+    if ( use_sampler ) {
+        draw_list->AddCallback( draw_image_callback, m_image_sampler );
+        draw_list->AddImage( srv, ImVec2( x, y ), ImVec2( x + width, y + height ), ImVec2( 0.f, 0.f ), ImVec2( 1.f, 1.f ), color );
+        draw_list->AddCallback( draw_image_callback, nullptr );
+    }
+
+    else {
+        draw_list->AddImage( srv, ImVec2( x, y ), ImVec2( x + width, y + height ), ImVec2( 0.f, 0.f ), ImVec2( 1.f, 1.f ), color );
+    }
 }
 
 ID3D11ShaderResourceView* renderer_manager::load_texture_from_memory( void* image_data, uint32_t image_width, uint32_t image_height ) {

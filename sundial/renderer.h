@@ -32,7 +32,7 @@ public:
 	void draw_line( float x1, float y1, float x2, float y2, float thickness, uint32_t color );
 	void draw_string_a( float x, float y, uint32_t font, float size, uint32_t flags, uint32_t color, const char* text );
 	void draw_string_w( float x, float y, uint32_t font, float size, uint32_t flags, uint32_t color, const wchar_t* text );
-	void draw_image( float x, float y, float width, float height, ID3D11ShaderResourceView* srv );
+	void draw_image( float x, float y, float width, float height, uint32_t color, ID3D11ShaderResourceView* srv, bool use_sampler = true );
 
 	ID3D11ShaderResourceView* load_texture_from_memory( void* image_data, uint32_t image_width, uint32_t image_height );
 

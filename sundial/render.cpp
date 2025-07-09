@@ -366,7 +366,7 @@ void render_thread() {
 
                     cached_belt_item& belt_item = target_player->m_belt_items[ i ];
                     if ( belt_item.m_present ) {
-                        renderer.draw_image( x, y, icon_width, icon_height, belt_item.m_localized_item->m_srv );
+                        renderer.draw_image( x, y, icon_width, icon_height, col32( 255, 255, 255, 255 ), belt_item.m_localized_item->m_srv );
                     }
 
                     x += icon_width + padding;

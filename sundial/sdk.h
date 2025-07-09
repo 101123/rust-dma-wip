@@ -309,52 +309,11 @@ namespace unity {
         fast_vector<int>* m_parent_indices;
     };
 
-
-    namespace Offsets {
-        constexpr const static size_t g_PlayerIsFocused = 0x1C00980;
-        constexpr const static size_t g_TimeManager = 0x1CA3978;
-
-        namespace GameObject {
-            constexpr const static size_t m_ScriptingObject = 0x28;
-            constexpr const static size_t m_Component = 0x30;
-            constexpr const static size_t m_IsActive = 0x56;
-            constexpr const static size_t m_Name = 0x60;
-        }
-
-        namespace Component {
-            constexpr const static size_t m_ScriptingObject = 0x28;
-            constexpr const static size_t m_GameObject = 0x30;
-        }
-
-        namespace TransformHierarchy {
-            constexpr const static size_t localTransforms = 0x18;
-            constexpr const static size_t parentIndices = 0x20;
-            constexpr const static size_t m_LocalPosition = 0x90;
-        }
-
-        namespace Transform {
-            constexpr const static size_t m_TransformData = 0x38;
-            constexpr const static size_t m_Children = 0x70;
-        }
-
-        namespace Camera {
-            constexpr const static size_t m_WorldToClipMatrix = 0x30C;
-            constexpr const static size_t m_CullingMask = 0x43C;
-            constexpr const static size_t m_LastPosition = 0x454;
-        }
-
-        namespace TimeManager {
-            constexpr const static size_t m_RealTime = 0x70;
-            constexpr const static size_t m_ActiveTime = 0x90;
-            constexpr const static size_t m_FrameCount = 0xC8;
-        }
-    }
-
     class camera {
     public:
-        FIELD( mat4x4, view_matrix, Offsets::Camera::m_WorldToClipMatrix );
-        FIELD( int, layer_mask, Offsets::Camera::m_CullingMask );
-        FIELD( vec3, position, Offsets::Camera::m_LastPosition );
+        FIELD( mat4x4, view_matrix, Offsets::Unity::Camera::m_CullingMatrix );
+        FIELD( int, layer_mask, Offsets::Unity::Camera::m_CullingMask );
+        FIELD( vec3, position, Offsets::Unity::Camera::m_LastPosition );
     };
 
     class component;
@@ -362,10 +321,34 @@ namespace unity {
 
     template <typename T>
     struct dynamic_array {
-        T* m_data;
+        T* m_ptr;
         uint64_t m_label;
-        size_t m_size;
-        size_t m_capacity;
+        uint64_t m_size;
+        uint64_t m_capacity;
+    };
+
+    class dynamic_bitset {
+    public:
+        uint64_t m_label;
+        uint32_t* m_bits;
+        uint64_t m_num_bits;
+        uint64_t m_num_blocks;
+
+        static size_t word( size_t bit ) {
+            return bit / 32;
+        }
+
+        static size_t offset( size_t bit ) {
+            return bit % 32;
+        }
+
+        static uint32_t mask1( size_t bit ) {
+            return 1 << offset( bit );
+        }
+
+        static bool test( size_t b, const fast_vector<uint32_t>& bits ) {
+            return ( bits[ word( b ) ] & mask1( b ) ) != 0;
+        }
     };
 
     class game_object {
@@ -373,30 +356,30 @@ namespace unity {
         typedef std::pair<int, component*> component_pair;
 
     public:
-        FIELD( il2cpp_object*, scripting_object, Offsets::GameObject::m_ScriptingObject );
-        FIELD( dynamic_array<component_pair>, components, Offsets::GameObject::m_Component );
-        FIELD( bool, is_active, Offsets::GameObject::m_IsActive );
-        FIELD( uintptr_t, name, Offsets::GameObject::m_Name );
+        FIELD( il2cpp_object*, scripting_object, Offsets::Unity::GameObject::m_Object );
+        FIELD( dynamic_array<component_pair>, components, Offsets::Unity::GameObject::m_Component );
+        FIELD( bool, is_active, Offsets::Unity::GameObject::m_IsActive );
+        FIELD( uintptr_t, name, Offsets::Unity::GameObject::m_Name );
 
         transform* get_transform() {
             dynamic_array<component_pair> component_list = components;
-            if ( !component_list.m_data || ( component_list.m_size < 1 || component_list.m_size > 65536 ) )
+            if ( !component_list.m_ptr || ( component_list.m_size < 1 || component_list.m_size > 65536 ) )
                 return nullptr;
 
-            component_pair nig = read_memory<component_pair>( component_list.m_data );
+            component_pair nig = read_memory<component_pair>( component_list.m_ptr );
             return ( transform* )nig.second;
         }
     };
 
     class component {
     public:
-        FIELD( game_object*, game_object, Offsets::Component::m_GameObject );
+        FIELD( game_object*, game_object, Offsets::Unity::Component::m_GameObject );
     };
 
     class transform_hierarchy {
     public:
-        FIELD( math::trsx*, local_transforms, Offsets::TransformHierarchy::localTransforms );
-        FIELD( int*, parent_indices, Offsets::TransformHierarchy::parentIndices );
+        FIELD( math::trsx*, local_transforms, Offsets::Unity::TransformHierarchy::localTransforms );
+        FIELD( int*, parent_indices, Offsets::Unity::TransformHierarchy::parentIndices );
     };
 
     struct transform_access {
@@ -406,8 +389,61 @@ namespace unity {
 
     class transform : public component {
     public:
-        FIELD( transform_access, transform_data, Offsets::Transform::m_TransformData );
+        FIELD( transform_access, transform_data, Offsets::Unity::Transform::m_TransformData );
     };
+
+    class input_manager {
+    public:
+        FIELD( dynamic_bitset, current_key_state, Offsets::Unity::InputManager::m_CurrentKeyState );
+        FIELD( dynamic_bitset, this_frame_key_down, Offsets::Unity::InputManager::m_ThisFrameKeyDown );
+        FIELD( dynamic_bitset, this_frame_key_up, Offsets::Unity::InputManager::m_ThisFrameKeyUp );
+        FIELD( vec4, mouse_delta, Offsets::Unity::InputManager::m_MouseDelta );
+        FIELD( vec2, mouse_pos, Offsets::Unity::InputManager::m_MousePos );
+    };
+
+    class time_manager {
+    public:
+
+    };
+
+    enum class manager_type : size_t {
+        player_settings = 0ull,
+        input_manager,
+        tag_manager,
+        audio_manager,
+        shader_name_registry,
+        mono_manager,
+        graphics_settings,
+        time_manager,
+        delayed_call_manager,
+        physics_manager,
+        build_settings,
+        quality_settings,
+        resource_manager,
+        navmesh_project_settings,
+        physics2d_settings,
+        cluster_input_manager,
+        runtime_initialize_on_load_manager,
+        unity_connect_settings,
+        streaming_manager,
+        vfx_manager,
+        global_manager_count,
+        first_level_manager = global_manager_count,
+        occlusion_culling_settings = first_level_manager,
+        render_settings,
+        lightmap_settings,
+        navmesh_settings,
+        manager_count,
+        level_game_manager_count = manager_count - global_manager_count
+    };
+
+    template <typename T>
+    inline T get_manager( manager_type manager ) {
+        static_assert( sizeof( T ) == sizeof( uintptr_t ), "size being read must be equivalent to size of uintptr_t" );
+
+        void** managers = ( void** )( unity_player + Offsets::Unity::gContext );
+        return read_memory<T>( &managers[ ( size_t )manager ] );
+    }
 }
 
 template <typename T = uintptr_t>
